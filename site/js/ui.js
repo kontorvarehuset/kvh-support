@@ -435,8 +435,10 @@ function tegnSakTopp(sak) {
 
 function tegnBanner(sak) {
   const rot = $("#sak-banner"); if (!rot) return;
+  /* Saker på vent har ikke eget felt lenger: knappen øverst viser fristen («På vent til man. 23. nov.»), og et felt
+     som sa det samme en gang til tok bare plass, særlig på telefon. */
   rot.innerHTML = sak.status === "vent"
-    ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span></div>`
+    ? ""
     : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Gjenåpne den med knappen øverst.</span></div>` : "";
 }
 
