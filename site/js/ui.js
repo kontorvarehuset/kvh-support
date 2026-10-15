@@ -17,6 +17,7 @@ import {
 } from "./modell.js";
 import { rens } from "./rens.js";
 import { monter, planleggSending, SPERRE_TIL } from "./skriv.js";
+import { apneNySak } from "./ny-sak.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -395,6 +396,22 @@ async function settEier(sak, nyId) {
   });
 }
 
+/* Zammads søkeindeks henger litt etter. En sak som akkurat er laget kan mangle i det første svaret,
+   så vi spør noen ganger til før vi gir opp. */
+async function etterOpprettet(id) {
+  for (let forsok = 0; forsok < 6; forsok++) {
+    try { await lastSaker(); } catch { /* prøver igjen */ }
+    if (finn(id)) break;
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  S.fane = "åpen"; S.spesial = null; S.visning = "alle"; S.filter = "";
+  const sok = $("#sok"); if (sok) sok.value = "";
+  if (!finn(id)) { helhet(); return toast("Saken er opprettet, men dukker opp i lista om litt."); }
+  S.valgt = id;
+  helhet();
+  velgSak(id);
+}
+
 async function etterEndring(id) {
   try { await lastSaker(); } catch (e) { toast("Endret, men kunne ikke oppdatere lista: " + e.message); }
   tegnHero(); tegnFaner(); tegnListe();
@@ -476,6 +493,7 @@ function koble() {
   });
   $("#sok").addEventListener("input", (e) => { S.filter = e.target.value; tegnListe(); });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
+  $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, toast, etterOpprettet }));
   $("#toast-b").addEventListener("click", () => { if (angreFn) angreFn(); });
   $("#hero").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-t]"); if (!b) return;

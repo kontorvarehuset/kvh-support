@@ -47,6 +47,36 @@ export function tilHtml(felt) {
   return { html, bilder, tekst, tomt: !tekst && bilder === 0 };
 }
 
+/**
+ * Innliming og slipp av skjermbilder i et redigeringsfelt. Brukes av «Ny sak». (Svarfeltet har sin
+ * egen kopi av det samme, som ikke er flyttet hit for å ikke røre det som virker.)
+ */
+export function kobleFelt(felt, boks, { vedEndring } = {}) {
+  const settInn = (src) => {
+    felt.focus();
+    const img = document.createElement("img"); img.src = src; img.alt = "Skjermbilde";
+    const sel = getSelection();
+    if (sel.rangeCount && felt.contains(sel.anchorNode)) {
+      const r = sel.getRangeAt(0); r.deleteContents(); r.insertNode(img); r.setStartAfter(img); r.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r);
+    } else felt.appendChild(img);
+    felt.appendChild(document.createElement("br"));
+    if (vedEndring) vedEndring();
+  };
+  const les = (filer) => [...filer].filter((f) => /^image\/(png|jpe?g|gif|webp)$/.test(f.type)).forEach((f) => {
+    const l = new FileReader(); l.onload = () => settInn(l.result); l.readAsDataURL(f);
+  });
+  felt.addEventListener("paste", (e) => {
+    const filer = [...(e.clipboardData?.files || [])];
+    e.preventDefault();
+    if (filer.some((q) => q.type.startsWith("image/"))) les(filer);
+    else document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+  });
+  ["dragenter", "dragover"].forEach((ev) => boks.addEventListener(ev, (e) => { e.preventDefault(); boks.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((ev) => boks.addEventListener(ev, (e) => { e.preventDefault(); if (ev === "drop") les(e.dataTransfer.files); boks.classList.remove("over"); }));
+  return { les };
+}
+
 const utkast = new Map(); // sak-id -> {modus, html, cc}
 
 /**
