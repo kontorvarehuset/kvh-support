@@ -92,6 +92,7 @@ export function apneVideresend(ctx) {
       <div class="fl"><span>Cc</span><div class="ccrad" id="vid-cc" style="padding:6px 10px;border:1px solid var(--kant);border-radius:10px;background:var(--raised)"></div></div>
       <label class="fl"><span>Emne</span><input id="vid-emne"></label>
       <div class="fl"><span>Din melding (valgfri)</span><div class="felt" id="vid-felt" contenteditable="true" role="textbox" aria-multiline="true" style="border:1px solid var(--kant);border-radius:12px;background:var(--raised);position:relative;min-height:70px"></div></div>
+      <div class="sig" id="vid-sig-rad" hidden><label class="sig-valg"><input type="checkbox" id="vid-sig-pa"> Med signatur (etter din egen melding)</label><div class="sig-visning" id="vid-sig-visning"></div></div>
       <div class="fl"><span>Det som videresendes</span><div id="vid-orig" style="max-height:200px;overflow:auto;border:1px dashed var(--kant);border-radius:12px;padding:10px 14px;background:var(--card)"></div></div>
       ${vedleggListe.length ? `<label class="omfang" style="gap:8px"><input type="checkbox" id="vid-vedlegg" ${forStort ? "" : "checked"} ${forStort ? "disabled" : ""}> Ta med ${vedleggListe.length} vedlegg (${vedleggListe.map((v) => esc(v.navn)).join(", ")})${forStort ? " — for store til å sende (over 15 MB)" : ""}</label>` : ""}
     </div>
@@ -123,6 +124,8 @@ export function apneVideresend(ctx) {
   };
   for (const n of ["til", "cc"]) { tegn(n); $("#vid-" + n).addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) { lister[n].splice(Number(b.dataset.i), 1); tegn(n); } }); }
 
+  let sigHtml = "";
+  if (ctx.signatur) ctx.signatur().then((h) => { sigHtml = h || ""; if (sigHtml) { $("#vid-sig-visning").innerHTML = sigHtml; $("#vid-sig-rad").hidden = false; $("#vid-sig-pa").checked = true; } }).catch(() => {});
   const felt = $("#vid-felt");
   felt.dataset.tom = "Skriv noen ord til mottakeren, hvis du vil …";
   kobleFelt(felt, felt.parentElement);
@@ -135,7 +138,8 @@ export function apneVideresend(ctx) {
     const knapp = $("#vid-send"); knapp.disabled = true; knapp.textContent = "Sender …";
     try {
       const egen = tilHtml(felt);
-      const html = (egen.tomt ? "" : egen.html + "<br><br>") + pakkInn(a, orig);
+      const sig = !egen.tomt && sigHtml && $("#vid-sig-pa").checked ? "<br>" + sigHtml : "";
+      const html = (egen.tomt ? "" : egen.html + sig + "<br><br>") + pakkInn(a, orig);
       const med = $("#vid-vedlegg") && $("#vid-vedlegg").checked;
       const vedlegg = med ? await hentVedlegg(a, vedleggListe) : [];
       await post("/ticket_articles", byggVideresendKropp({ sak, til: lister.til, cc: lister.cc, emne, html, vedlegg }));

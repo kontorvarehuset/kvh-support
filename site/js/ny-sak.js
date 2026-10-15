@@ -69,6 +69,7 @@ export async function apneNySak(ctx) {
       <div class="fl" id="ns-cc-rad"><span>Cc</span><div class="ccrad" id="ns-cc" style="padding:6px 10px;border:1px solid var(--kant);border-radius:10px;background:var(--raised)"></div></div>
       <label class="fl"><span>Emne</span><input id="ns-emne" placeholder="Hva gjelder det?"></label>
       <div class="fl"><span id="ns-mld-l">Melding til kunden</span><div class="felt" id="ns-felt" contenteditable="true" role="textbox" aria-multiline="true" style="border:1px solid var(--kant);border-radius:12px;background:var(--raised);position:relative"></div></div>
+      <div class="sig" id="ns-sig-rad" hidden><label class="sig-valg"><input type="checkbox" id="ns-sig-pa"> Med signatur</label><div class="sig-visning" id="ns-sig-visning"></div></div>
       <div class="to-kol">
         <label class="fl"><span>Gruppe</span><select id="ns-gruppe"></select></label>
         <label class="fl"><span>Eier</span><select id="ns-eier"></select></label>
@@ -97,14 +98,26 @@ export async function apneNySak(ctx) {
   $("#ns-eier").innerHTML = `<option value="${ctx.me.id}">Meg</option>` +
     ctx.agenter.filter((a) => a.id !== ctx.me.id).map((a) => `<option value="${a.id}">${esc(a.navn)}</option>`).join("") + `<option value="">Ingen eier</option>`;
 
+  /* Signaturen følger gruppen: byttes gruppe, hentes den på nytt. */
+  let sigHtml = "";
+  const lastSig = async () => {
+    sigHtml = "";
+    try { if (ctx.signatur) sigHtml = await ctx.signatur(Number($("#ns-gruppe").value)) || ""; } catch { sigHtml = ""; }
+    $("#ns-sig-visning").innerHTML = sigHtml;
+    $("#ns-sig-rad").hidden = !sigHtml || S.kanal !== "epost";
+    if (sigHtml) $("#ns-sig-pa").checked = true;
+  };
+  $("#ns-gruppe").addEventListener("change", lastSig);
   const oppdaterKanal = () => {
     rot.querySelectorAll(".kanal button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === S.kanal)));
     $("#ns-mld-l").textContent = S.kanal === "epost" ? "Melding til kunden" : "Hva ble sagt i samtalen?";
     $("#ns-opprett").textContent = S.kanal === "epost" ? "Opprett og send" : "Opprett saken";
     $("#ns-cc-rad").hidden = S.kanal !== "epost";
+    $("#ns-sig-rad").hidden = !sigHtml || S.kanal !== "epost";
   };
   rot.querySelector(".kanal").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { S.kanal = b.dataset.k; oppdaterKanal(); } });
   oppdaterKanal();
+  lastSig();
 
   const tegnKunde = () => {
     $("#ns-valgt").innerHTML = S.kunde
@@ -164,7 +177,8 @@ export async function apneNySak(ctx) {
     if (tomt) return ctx.toast("Skriv en melding først.");
     const gruppeId = Number($("#ns-gruppe").value);
     if (!gruppeId) return ctx.toast("Velg en gruppe først.");
-    const kropp = byggSakKropp({ kanal: S.kanal, kunde: S.kunde, cc: S.cc, emne, html, gruppeId, eierId: Number($("#ns-eier").value) || 0 });
+    const medSig = S.kanal === "epost" && sigHtml && $("#ns-sig-pa").checked;
+    const kropp = byggSakKropp({ kanal: S.kanal, kunde: S.kunde, cc: S.cc, emne, html: html + (medSig ? "<br>" + sigHtml : ""), gruppeId, eierId: Number($("#ns-eier").value) || 0 });
     const knapp = $("#ns-opprett"); knapp.disabled = true; knapp.textContent = "Oppretter …";
     try {
       const sak = await post("/tickets", kropp);

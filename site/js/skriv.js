@@ -100,6 +100,10 @@ export function monter(rot, ctx) {
     </div>
     <div class="ccrad" id="ccrad"><span class="l">Cc</span><span id="cc-chips"></span><input class="cc-inn" id="cc-inn" type="email" placeholder="Legg til e-postadresse …" aria-label="Cc"></div>
     <div class="felt" id="felt" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Melding"></div>
+    <div class="sig" id="sig-rad" hidden>
+      <label class="sig-valg"><input type="checkbox" id="sig-pa"> Med signatur</label>
+      <div class="sig-visning" id="sig-visning"></div>
+    </div>
     <div class="skrivbunn">
       <button type="button" class="ikon" id="vedlegg" title="Legg til skjermbilde" aria-label="Legg til skjermbilde">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-9 9"/></svg>
@@ -115,6 +119,11 @@ export function monter(rot, ctx) {
   const felt = $("#felt");
   felt.innerHTML = u.html;
 
+  /* Signaturen hentes fra Zammad når skriveflata åpnes. Mangler den, vises ingenting. */
+  let sigHtml = "";
+  const sigPa = $("#sig-pa");
+  try { sigPa.checked = localStorage.getItem("kvhui-signatur") !== "av"; } catch { sigPa.checked = true; }
+  sigPa.addEventListener("change", () => { try { localStorage.setItem("kvhui-signatur", sigPa.checked ? "pa" : "av"); } catch { /* ingen lagring */ } });
   const oppdater = () => {
     const notat = u.modus === "notat";
     $("#skriv").classList.toggle("notat", notat);
@@ -124,11 +133,19 @@ export function monter(rot, ctx) {
     $("#send").textContent = notat ? "Lagre notat" : "Send svar";
     $("#ccrad").hidden = notat;
     $("#send-lukk").hidden = notat;
+    $("#sig-rad").hidden = notat || !sigHtml;
     $("#hint").textContent = "Lim inn eller dra skjermbilder rett i meldingen · ⌘↵ sender";
     rot.querySelectorAll(".modus button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === u.modus)));
     $("#cc-chips").innerHTML = u.cc.map((e, i) => `<span class="cc-chip">${esc(e)}<button type="button" data-cc="${i}" aria-label="Fjern ${esc(e)}">×</button></span>`).join(" ");
   };
   oppdater();
+  if (ctx.signatur) {
+    ctx.signatur().then((h) => {
+      sigHtml = h || "";
+      $("#sig-visning").innerHTML = sigHtml;
+      oppdater();
+    }).catch(() => { /* uten signatur */ });
+  }
 
   const lagre = () => { u.html = felt.innerHTML; };
   felt.addEventListener("input", lagre);
@@ -195,7 +212,8 @@ export function monter(rot, ctx) {
       internal: notat,
       sender: "Agent",
       content_type: "text/html",
-      body: html,
+      /* Signaturen legges til på slutten, bare på svar til kunde og bare hvis den er på. */
+      body: html + (!notat && sigHtml && sigPa.checked ? "<br>" + sigHtml : ""),
       subject: sak.emne,
     };
     if (!notat) { kropp.to = sak.epost; if (u.cc.length) kropp.cc = u.cc.join(", "); }

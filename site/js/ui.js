@@ -19,12 +19,14 @@ import { rens } from "./rens.js";
 import { monter, planleggSending, SPERRE_TIL } from "./skriv.js";
 import { apneNySak } from "./ny-sak.js";
 import { apneVideresend } from "./videresend.js";
+import { signaturHtml } from "./signatur.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const S = {
   me: null,
+  meBruker: null,
   lokale: new Map(),
   treff: null,
   omfang: { apne: true, lukkede: true },
@@ -305,7 +307,7 @@ function tegnArtikkelRot(sak) {
 function monterSkriveflate(sak) {
   const rot = $("#skriv-rot"); if (!rot) return;
   if (sak.status === "lukket" || !S.artikler.has(sak.id)) { rot.innerHTML = ""; return; }
-  monter(rot, { sak, toast, planlegg: (j) => planleggSending(j, { toast, ferdig: etterSending, feilet: feilVedSending }) });
+  monter(rot, { sak, signatur: () => signaturHtml(sak.gruppeId, { bruker: S.meBruker, sak }), toast, planlegg: (j) => planleggSending(j, { toast, ferdig: etterSending, feilet: feilVedSending }) });
 }
 
 async function etterSending(j) {
@@ -635,7 +637,7 @@ function koble() {
   });
   $("#rader").addEventListener("click", (e) => { if (e.target.closest("[data-a='nullstill-sok']")) nullstillSok(); });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
-  $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, toast, etterOpprettet }));
+  $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, signatur: (gruppeId) => signaturHtml(gruppeId, { bruker: S.meBruker, sak: null }), toast, etterOpprettet }));
   $("#toast-b").addEventListener("click", () => { if (angreFn) angreFn(); });
   $("#hero").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-t]"); if (!b) return;
@@ -654,7 +656,7 @@ function koble() {
     if (vid && S.valgt) {
       const sak = finn(S.valgt), ar = S.artikler.get(S.valgt);
       const art = ar && ar.liste[Number(vid.dataset.vid)];
-      if (sak && art) apneVideresend({ sak, artikkel: art, toast, ferdig: etterSending, innlogging: visInnlogging });
+      if (sak && art) apneVideresend({ sak, artikkel: art, signatur: () => signaturHtml(sak.gruppeId, { bruker: S.meBruker, sak }), toast, ferdig: etterSending, innlogging: visInnlogging });
       return;
     }
     if (e.target.closest("[data-a='tilbake']")) $("#app").classList.remove("sak-åpen");
@@ -720,6 +722,7 @@ export async function start() {
     const b = sess.session;
     if (!b || !b.id) return visInnlogging();
     S.me = { id: b.id, navn: navnPaa(b) };
+    S.meBruker = b;
     S.brukere.set(b.id, b);
     await lastSaker();
     try { await lastAgenter(); } catch { /* eiermenyen mangler kollegaer, men siden virker */ }

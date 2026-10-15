@@ -316,3 +316,11 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .mld .hode .vid:hover{background:var(--sand)}
 .mld .hode .vid:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media (hover:none){.mld .hode .vid{opacity:1}}
+
+/* Signaturvalget: liten forhåndsvisning med avkrysning, under feltet. */
+.sig{margin:0 14px 6px;padding:8px 12px;border:1px dashed var(--kant);border-radius:12px;background:color-mix(in srgb,var(--sand) 60%,transparent)}
+.sig[hidden]{display:none}
+.sig-valg{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;color:var(--graphite);cursor:pointer}
+.sig-visning{margin-top:6px;font-size:12.5px;color:var(--mist);overflow-wrap:anywhere}
+.sig-visning p,.sig-visning div{margin:0}
+.ark .sig{margin:0}
