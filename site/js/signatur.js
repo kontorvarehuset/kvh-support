@@ -60,3 +60,13 @@ export async function signaturHtml(gruppeId, { bruker, sak }) {
   rot.appendChild(r.svar);
   return rot.innerHTML.trim();
 }
+
+/** Signaturen som én linje, med « · » der den har linjeskift («Frank Iversen · KVH»). Tegnes i den lukkede visningen. */
+export function kompaktSignatur(html) {
+  const rot = document.createElement("div");
+  rot.innerHTML = html;
+  rot.querySelectorAll("br").forEach((br) => br.replaceWith(" · "));
+  rot.querySelectorAll("div,p,li,tr").forEach((el) => el.append(" · "));
+  /* Del på skilletegnet, kast tomme biter (tomme linjer), og sett sammen igjen. */
+  return rot.textContent.replace(/\s+/g, " ").split("·").map((d) => d.trim()).filter(Boolean).join(" · ");
+}

@@ -16,6 +16,7 @@
  */
 
 import { post, put } from "./api.js";
+import { kompaktSignatur } from "./signatur.js";
 
 /* Prøvesperren er fjernet (15. okt. 2026, etter at Frank godkjente testen). Settes til et saksnummer som
    tekst for å begrense alt som skrives til én sak igjen. */
@@ -148,7 +149,8 @@ export function monter(rot, ctx) {
   if (ctx.signatur) {
     ctx.signatur().then((h) => {
       sigHtml = h || "";
-      $("#sig-visning").innerHTML = sigHtml;
+      $("#sig-visning").innerHTML = sigHtml ? `<span class="sig-kort"></span><span class="sig-full">${sigHtml}</span>` : "";
+      const kort = $("#sig-visning").querySelector(".sig-kort"); if (kort) kort.textContent = kompaktSignatur(sigHtml);
       oppdater();
     }).catch(() => { /* uten signatur */ });
   }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 const dom = new JSDOM("<!doctype html><body></body>");
 globalThis.document = dom.window.document; globalThis.DOMParser = dom.window.DOMParser;
-const { utfyllMal } = await import("../site/js/signatur.js");
+const { utfyllMal, kompaktSignatur } = await import("../site/js/signatur.js");
 
 const k = { user: { firstname: "Frank", lastname: "O'Iversen", email: "f@x.example" }, ticket: { title: "Skriver <b>", number: "13753", group: { name: "IT" } } };
 assert.equal(utfyllMal("Mvh<br>#{user.firstname} #{user.lastname}", k), "Mvh<br>Frank O&#39;Iversen", "verdier escapes");
@@ -10,4 +10,7 @@ assert.equal(utfyllMal("#{ticket.title}", k), "Skriver &lt;b&gt;", "HTML i en ve
 assert.equal(utfyllMal("Gruppe: #{ticket.group.name} / #{ ticket.number }", k), "Gruppe: IT / 13753", "dype stier og mellomrom");
 assert.equal(utfyllMal("a#{config.fqdn}b#{user.finnes_ikke}c#{user}", k), "abc", "ukjent og objekter blir tomme");
 assert.equal(utfyllMal(null, k), "");
+assert.equal(kompaktSignatur("Frank Iversen<br>KVH"), "Frank Iversen · KVH", "linjeskift blir « · », ikke sammenskrevet");
+assert.equal(kompaktSignatur("<div>Frank</div><div>KVH Support</div><div><br></div>"), "Frank · KVH Support");
+assert.equal(kompaktSignatur("Bare en linje"), "Bare en linje");
 console.log("signatur: ok");

@@ -407,7 +407,9 @@ async function endreStatus(sak, kropp, tekst) {
     if (forrigeStatus === "lukket") { S.fane = fortsatt.status; helhet(); } else velgNeste(sak.id);
   }
   else if (fortsatt) { tegnBanner(fortsatt); tegnSakTopp(fortsatt); monterSkriveflate(fortsatt); }
-  toast(tekst, async () => {
+  /* Meldingen sier HVILKEN sak det gjaldt: siden går videre til neste sak, og ellers ser det ut som endringen
+     gjaldt den man nå står på. */
+  toast(`Sak #${sak.nummer}: ${tekst}`, async () => {
     try {
       const t = await put(`/tickets/${sak.id}`, forrige);
       brukSvar(sak, t, forrige);
@@ -442,7 +444,7 @@ async function settEier(sak, nyId) {
   }
   await etterEndring(sak.id);
   const tekst = nytt === INGEN_EIER ? "Eieren er fjernet" : nytt === S.me?.id ? "Du eier saken nå" : `Saken er gitt til ${navn(nytt)}`;
-  toast(tekst, async () => {
+  toast(`Sak #${sak.nummer}: ${tekst}`, async () => {
     try {
       const t = await put(`/tickets/${sak.id}`, { owner_id: forrige });
       brukSvar(sak, t, { owner_id: forrige });

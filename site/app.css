@@ -333,10 +333,12 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .skriv{padding:8px 0 10px}
 .skriv-inn{max-height:min(68vh,560px);overflow-y:auto}
 .sig{margin:0 14px 4px;padding:6px 12px}
-.sig-visning{max-height:1.55em;overflow:hidden;cursor:pointer;white-space:nowrap;text-overflow:ellipsis}
-.sig-visning br{display:none}
-.sig.apen .sig-visning{max-height:none;white-space:normal;cursor:default}
-.sig.apen .sig-visning br{display:inline}
+.skriv .sig-visning{cursor:pointer}
+.skriv .sig-visning .sig-full{display:none}
+.skriv .sig-visning .sig-kort{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skriv .sig.apen .sig-visning .sig-full{display:block}
+.skriv .sig.apen .sig-visning .sig-kort{display:none}
+.skriv .sig.apen .sig-visning{cursor:default}
 .sig-valg .apne-sig{margin-left:auto;color:var(--primary-deep);font-weight:700;cursor:pointer;background:none;border:0;font:inherit;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
 @media (max-height:820px){
   .hero{padding:10px 28px 8px;gap:4px 28px}
