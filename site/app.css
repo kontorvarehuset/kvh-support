@@ -364,3 +364,6 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .skriv-inn{max-height:min(45vh,520px)}
 .tråd-inn{min-height:100%;justify-content:flex-end}
 @media (max-width:860px){.skriv-rot{padding:0 12px}}
+
+/* Saken står på vent: knappen er farget, så det ikke er tvil om hvorfor den ikke står i «Åpne». */
+.knapp.er-paa-vent{background:var(--stale-tint);border-color:var(--stale);color:var(--stale)}

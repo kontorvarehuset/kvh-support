@@ -376,9 +376,13 @@ function ventValg() {
 function ventKnapp(sak) {
   if (sak.status === "lukket") return "";
   const v = ventValg();
-  return `<button class="knapp" id="vent-b" aria-haspopup="menu" aria-expanded="false">På vent ▾</button>
+  const paaVent = sak.status === "vent";
+  /* Står saken på vent, sier selve knappen det, og menyen begynner med veien ut. */
+  const tekst = paaVent ? `På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil).replace(/ \d{2}:\d{2}$/, "")) : ""} ▾` : "På vent ▾";
+  return `<button class="knapp${paaVent ? " er-paa-vent" : ""}" id="vent-b" aria-haspopup="menu" aria-expanded="false">${tekst}</button>
     <div class="meny-pop" id="vent-pop" role="menu" hidden>
-      <div class="h">Sett på vent til</div>
+      ${paaVent ? `<button role="menuitem" class="ta" data-a="aapne"><span>Åpne nå</span><span>ta av vent</span></button><div class="sep"></div>` : ""}
+      <div class="h">${paaVent ? "Sett ny frist" : "Sett på vent til"}</div>
       ${v.map((x, i) => `<button role="menuitem" data-v="${i}"><span>${esc(x.navn)}</span><span>${x.merke ? esc(x.merke) : esc(ventTekst(x.d.getTime()).replace(/^\S+\s/, ""))}</span></button>`).join("")}
     </div>`;
 }
