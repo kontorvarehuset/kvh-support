@@ -22,6 +22,13 @@ import { apneVideresend } from "./videresend.js";
 import { signaturHtml } from "./signatur.js";
 
 const $ = (s) => document.querySelector(s);
+
+/* Eneste opprinnelse som får ramme inn siden og snakke med den (nginx sier det samme i frame-ancestors). */
+const RMM_OPPRINNELSE = "https://rmm.kvh.no";
+function meldOpp(ny) {
+  if (window.parent === window) return;
+  try { window.parent.postMessage({ type: "kvhui-antall", ny }, RMM_OPPRINNELSE); } catch { /* uten ramme eller blokkert */ }
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const S = {
@@ -182,6 +189,7 @@ function tegnHero() {
       `<button data-t="${k}" class="${kl}" aria-pressed="${!!paa}" title="${esc(t)}" aria-label="${n} ${esc(e.toLowerCase())}"><span class="e">${esc(e)}</span><span class="n">${n}</span><span class="u">${esc(u)}</span></button>`).join("")}</div>`;
   const ny = apne.filter((x) => x.venterPaaOss || !x.eier).length;
   document.title = (ny ? `(${ny}) ` : "") + "KVH Support";
+  meldOpp(ny);
 }
 
 function tegnFaner() {
@@ -763,7 +771,15 @@ function koble() {
     r.dataset.theme = mork ? "light" : "dark";
     try { localStorage.setItem("kvhui-tema", r.dataset.theme); } catch { /* privat vindu */ }
   });
-  try { const t = localStorage.getItem("kvhui-tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch { /* ingen lagring */ }
+  const innbygd = !!document.documentElement.dataset.innbygd;
+  /* Innbygd følger temaet RMM-et sier, ikke det som er lagret her. */
+  if (!innbygd) { try { const t = localStorage.getItem("kvhui-tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch { /* ingen lagring */ } }
+  /* RMM-et kan si fra at temaet er byttet. Bare meldinger fra RMM-ets opprinnelse tas imot. */
+  window.addEventListener("message", (e) => {
+    if (e.origin !== RMM_OPPRINNELSE || !innbygd || !e.data || e.data.type !== "kvhui-tema") return;
+    if (e.data.tema === "lys") document.documentElement.dataset.theme = "light";
+    else if (e.data.tema === "mork") document.documentElement.dataset.theme = "dark";
+  });
 }
 
 /* Oppdaterer lista hvert minutt mens vinduet er synlig, og samtalen hvis saken er endret. */

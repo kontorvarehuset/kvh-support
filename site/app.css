@@ -398,3 +398,15 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 :root[data-theme="dark"]{color-scheme:dark}
 :root[data-theme="light"]{color-scheme:light}
 *{scrollbar-color:var(--kant) transparent}
+
+/* ── Innbygd i RMM-et (?innbygd=1) ─────────────────────────────────────────────────────────────────
+   Bakgrunnen er gjennomsiktig, så RMM-ets vindu (frostet glass) og siden bak skinner gjennom. Kort, bobler og felt
+   beholder sin egen bakgrunn, så teksten er lesbar. RMM-ets vindu har egen tittellinje, så vår topplinje og
+   hilsenen skjules, og tallene blir mindre. */
+:root[data-innbygd],:root[data-innbygd] body{background:transparent}
+:root[data-innbygd] .topp{display:none}
+:root[data-innbygd] .liste,:root[data-innbygd] .sak,:root[data-innbygd] .hero,:root[data-innbygd] .skriv-rot .skriv{background:transparent}
+:root[data-innbygd] .hero{padding:10px 16px 8px}
+:root[data-innbygd] .hero .dato,:root[data-innbygd] .hero h1,:root[data-innbygd] .hero .under{display:none}
+:root[data-innbygd] .tall button .n{font-size:28px;margin-top:2px}
+:root[data-innbygd] .rad:hover{background:color-mix(in srgb,var(--card) 60%,transparent)}
