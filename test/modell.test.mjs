@@ -66,4 +66,11 @@ assert.equal(bildeUrl({ image: "a1b2c3d4e5f6" }), "/api/v1/users/image/a1b2c3d4e
 assert.equal(bildeUrl({ image: null }), ""); assert.equal(bildeUrl(undefined), "");
 assert.equal(bildeUrl({ image: "../../x" }), "", "ingen stier fra data inn i adressen");
 assert.equal(byggArtikkel({ sender: "Agent", created_by_id: 3 }, new Map([[3, { id: 3, firstname: "F", lastname: "I", image: "abcdef12" }]])).bilde, "abcdef12");
+const skjult = byggArtikkel({ sender: "Customer", type: "email", attachments: [
+  { id: 1, filename: "message.html", size: 94, preferences: {} },
+  { id: 2, filename: "rapport.pdf", size: 5000, preferences: {} },
+  { id: 3, filename: "alt.html", size: 10, preferences: { "Content-Alternative": true } },
+] }, new Map()).vedlegg.map((v) => v.skjul);
+assert.deepEqual(skjult, [true, false, true], "message.html og alternativkopier skjules, ekte vedlegg vises");
+assert.equal(byggArtikkel({ sender: "Customer", type: "web", attachments: [{ id: 1, filename: "message.html", preferences: {} }] }, new Map()).vedlegg[0].skjul, false, "bare e-post: et skjema-vedlegg med samme navn vises");
 console.log("modell: ok");

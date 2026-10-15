@@ -231,7 +231,7 @@ function fyllBobler(sak, liste) {
       kn.addEventListener("click", () => { boks.hidden = !boks.hidden; kn.setAttribute("aria-expanded", String(!boks.hidden)); });
       el.appendChild(kn); el.appendChild(boks);
     }
-    const rest = a.vedlegg.filter((v) => !(v.cid && bruktCid.has(v.cid)));
+    const rest = a.vedlegg.filter((v) => !v.skjul && !(v.cid && bruktCid.has(v.cid)));
     if (rest.length) {
       const v = document.createElement("div"); v.className = "vedlegg";
       for (const f of rest) {

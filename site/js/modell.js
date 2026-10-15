@@ -177,6 +177,10 @@ export function byggArtikkel(a, brukere) {
       storrelse: Number(v.size) || 0,
       mime: (v.preferences && (v.preferences["Mime-Type"] || v.preferences["Content-Type"])) || "",
       cid: v.preferences && v.preferences["Content-ID"] ? String(v.preferences["Content-ID"]).replace(/^<|>$/g, "") : "",
+      /* Zammads egen kopi av e-postens HTML-del er ikke noe kunden la ved. Zammad merker den selv
+         (`Content-Alternative`), og navnet `message.html` på en e-post er reserven. */
+      skjul: !!(v.preferences && v.preferences["Content-Alternative"]) ||
+        (String(a.type || "") === "email" && /^message\.html$/i.test(v.filename || "")),
     })),
   };
 }
