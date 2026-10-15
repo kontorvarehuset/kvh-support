@@ -125,10 +125,12 @@ function tegnFaner() {
   const F = [["åpen", "Åpne", n("åpen")], ["vent", "På vent", n("vent")], ["lukket", "Lukket", S.lukkede ? S.lukkede.length : null]];
   $("#faner").innerHTML = F.map(([k, nn, t]) =>
     `<button role="tab" aria-selected="${k === S.fane}" data-f="${k}">${nn}<span class="t">${t ?? ""}</span></button>`).join("");
-  const apne = S.saker.filter((x) => x.status !== "lukket");
+  /* Tallene under Alle/Mine gjelder fanen man står i, ikke «alt som ikke er lukket».
+     Med 7 under Alle og 2 i lista så det ut som en feil, selv om begge var riktige. */
+  const kilde = S.fane === "lukket" ? (S.lukkede || []) : S.saker.filter((x) => x.status === S.fane);
   $("#visning").innerHTML =
-    `<button data-v="alle" aria-pressed="${S.visning === "alle"}">Alle saker<span class="t">${apne.length}</span></button>` +
-    `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${apne.filter((x) => x.eierId === S.me?.id).length}</span></button>`;
+    `<button data-v="alle" aria-pressed="${S.visning === "alle"}">Alle saker<span class="t">${kilde.length}</span></button>` +
+    `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${kilde.filter((x) => x.eierId === S.me?.id).length}</span></button>`;
 }
 
 function tegnListe() {
