@@ -142,6 +142,7 @@ function tegnListe() {
     const m = [];
     if (x.status === "vent") m.push(`<span class="chip vent">${x.ventTil ? "Til " + esc(ventTekst(x.ventTil)) : "Venter på svar"}</span>`);
     if (x.status === "lukket") m.push(`<span class="chip ok">Lukket</span>`);
+    if (x.fristNaadd) m.push(`<span class="chip ingen">Påminnelsen er nådd</span>`);
     if (x.dager >= 1) m.push(`<span class="chip vent">Venter ${x.dager} d</span>`);
     if (!x.eier && x.status !== "lukket") m.push(`<span class="chip ingen">Uten eier</span>`);
     const eierPrikk = x.eier ? `<span class="mini-av ${x.eierId === S.me?.id ? "" : "andre"}" title="${esc(x.eier)}">${esc(initialer(x.eier))}</span>` : "";

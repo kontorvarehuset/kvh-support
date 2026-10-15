@@ -53,4 +53,13 @@ assert.equal(skillSitat("> sitat først").svar, "> sitat først", "kutt på før
 assert.equal(kortTid(new Date("2026-10-15T09:14:00").getTime(), naa), "09:14");
 assert.equal(kortTid(new Date("2026-10-14T09:14:00").getTime(), naa), "i går");
 assert.equal(kortTid(new Date("2026-10-08T09:14:00").getTime(), naa), "8. okt.");
+const pend = byggSaker({ record_ids: [1, 2, 3, 4], assets: { Ticket: {
+  1: { id: 1, number: "1", state_id: 6, owner_id: 3, customer_id: 5, pending_time: "2026-10-14T08:00:00" },
+  2: { id: 2, number: "2", state_id: 6, owner_id: 3, customer_id: 5, pending_time: "2026-10-16T08:00:00" },
+  3: { id: 3, number: "3", state_id: 3, owner_id: 3, customer_id: 5, pending_time: "2026-10-15T08:00:00" },
+  4: { id: 4, number: "4", state_id: 7, owner_id: 3, customer_id: 5, pending_time: null },
+}, User: { 5: { id: 5, firstname: "G", lastname: "S" }, 3: { id: 3, firstname: "F", lastname: "I" } } } }, naa);
+assert.deepEqual(pend.map((x) => x.status), ["åpen", "vent", "åpen", "vent"], "passert frist er åpen, fram i tid er på vent");
+assert.equal(pend[0].fristNaadd, true); assert.equal(pend[0].venterPaaOss, true); assert.equal(pend[0].dager, 1);
+assert.equal(pend[1].fristNaadd, false); assert.equal(pend[3].status, "vent", "waiting for customer forblir på vent");
 console.log("modell: ok");

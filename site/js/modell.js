@@ -47,9 +47,19 @@ export function byggSaker(res, naa = Date.now()) {
     const eier = t.owner_id && t.owner_id !== INGEN_EIER ? U[t.owner_id] : null;
     const sistKunde = tid(t.last_contact_customer_at);
     const sistOss = tid(t.last_contact_agent_at);
-    const status = STATUS_ID[t.state_id] || "åpen";
-    /* «Venter på oss»: kunden skrev sist, og vi har ikke svart etter det. */
-    const venterPaaOss = status === "åpen" && sistKunde !== null && (sistOss === null || sistKunde > sistOss);
+    let status = STATUS_ID[t.state_id] || "åpen";
+    /* En sak satt på vent (3 pending reminder, 6 pending close) er på vent bare til
+       fristen. Er fristen passert, venter den på OSS igjen: Zammad kaller det
+       «Pending Reached». Uten dette ble «på vent» en søppelkasse der saker ble
+       liggende etter at påminnelsen var gått. Målt 15. okt. 2026: Zammads «Åpne
+       saker» (3) telte pending reminder som åpne også når fristen lå fram i tid,
+       mens vi vil se hva som faktisk haster. */
+    const ventTid = tid(t.pending_time);
+    const fristNaadd = (t.state_id === 3 || t.state_id === 6) && ventTid !== null && ventTid <= naa;
+    if (fristNaadd) status = "åpen";
+    /* «Venter på oss»: fristen er nådd, eller kunden skrev sist og vi har ikke svart etter det. */
+    const venterPaaOss = status === "åpen" && (fristNaadd || (sistKunde !== null && (sistOss === null || sistKunde > sistOss)));
+    const referanse = fristNaadd ? ventTid : sistKunde;
     ut.push({
       id: t.id,
       nummer: t.number,
@@ -65,9 +75,10 @@ export function byggSaker(res, naa = Date.now()) {
       sist: tid(t.last_contact_at) ?? tid(t.updated_at),
       oppdatert: t.updated_at,
       antall: t.article_count || 0,
-      ventTil: tid(t.pending_time),
-      /* Hele døgn siden kunden skrev, bare for saker som venter på oss. */
-      dager: venterPaaOss && sistKunde ? Math.floor((naa - sistKunde) / DAG) : 0,
+      ventTil: ventTid,
+      fristNaadd,
+      /* Hele døgn siden kunden skrev (eller fristen gikk ut), bare for saker som venter på oss. */
+      dager: venterPaaOss && referanse ? Math.floor((naa - referanse) / DAG) : 0,
     });
   }
   return ut;
