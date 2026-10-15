@@ -90,7 +90,8 @@ export function monter(rot, ctx) {
   utkast.set(sak.id, u);
   const kunSperret = SPERRE_TIL && String(sak.nummer) !== SPERRE_TIL;
 
-  rot.innerHTML = `<div class="skriv ${u.modus === "notat" ? "notat" : ""}" id="skriv"><div class="skriv-inn" id="skriv-inn">
+  rot.innerHTML = `<div class="skriv ${u.modus === "notat" ? "notat" : ""}" id="skriv"><button type="button" class="svar-knapp" id="svar-apne">Svar</button>
+    <div class="skriv-inn" id="skriv-inn">
     <div class="dropp">Slipp skjermbildet her</div>
     <div class="skrivtopp">
       <div class="modus" role="group" aria-label="Mottaker">
@@ -119,6 +120,16 @@ export function monter(rot, ctx) {
   const $ = (s) => rot.querySelector(s);
   const felt = $("#felt");
   felt.innerHTML = u.html;
+
+  /* Smale skjermer: skriveflata er en «Svar»-knapp til man trykker, og folder seg sammen igjen når den er tom og forlatt. */
+  const skrivEl = $("#skriv");
+  if (u.html.trim()) skrivEl.classList.add("utvidet");
+  $("#svar-apne").addEventListener("click", () => { skrivEl.classList.add("utvidet"); felt.focus(); });
+  skrivEl.addEventListener("focusout", (e) => {
+    const til = e.relatedTarget;
+    if (til && skrivEl.contains(til)) return;
+    if (felt.textContent.trim() === "" && !felt.querySelector("img") && !$("#cc-inn").value && u.cc.length === 0) skrivEl.classList.remove("utvidet");
+  });
 
   /* Signaturen hentes fra Zammad når skriveflata åpnes. Mangler den, vises ingenting. */
   let sigHtml = "";
@@ -227,12 +238,13 @@ export function monter(rot, ctx) {
     if (!notat) { kropp.to = sak.epost; if (u.cc.length) kropp.cc = u.cc.join(", "); }
     const brukt = { html: felt.innerHTML, modus: u.modus, cc: [...u.cc] };
     felt.innerHTML = ""; u.html = ""; u.cc = []; oppdater();
+    skrivEl.classList.remove("utvidet");
     ctx.planlegg({
       kropp, notat, saksId: sak.id,
       /* Etter svaret lukkes saken, i samme jobb: ett Angre gjelder begge deler. */
       etterpa: lukkEtterpaa && !notat ? { state_id: 4 } : null,
       beskrivelse: notat ? "Notat lagres" : `Svar sendes${lukkEtterpaa ? " og saken lukkes" : ""} til ${sak.epost}${brukt.cc.length ? " og " + brukt.cc.length + " i kopi" : ""}`,
-      gjenopprett: () => { u.html = brukt.html; u.modus = brukt.modus; u.cc = brukt.cc; if (rot.contains(felt)) { felt.innerHTML = u.html; oppdater(); } },
+      gjenopprett: () => { u.html = brukt.html; u.modus = brukt.modus; u.cc = brukt.cc; if (rot.contains(felt)) { felt.innerHTML = u.html; oppdater(); skrivEl.classList.add("utvidet"); } },
     });
   };
   $("#send").addEventListener("click", () => send(false));

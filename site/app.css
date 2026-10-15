@@ -450,8 +450,16 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   .skriv{padding:4px 0 8px}
   .skriv-inn{max-height:44vh}
   .felt{min-height:44px;padding:8px 12px}
-  .skriv-inn:not(:focus-within) .skrivtopp,
-  .skriv-inn:not(:focus-within) .ccrad,
-  .skriv-inn:not(:focus-within) .sig,
-  .skriv-inn:not(:focus-within) .hint{display:none}
+}
+}
+
+/* Svar-knappen: på smale skjermer er skriveflata først bare EN knapp, og folder seg ut når man trykker på den. Brede
+   skjermer har feltet fremme hele tiden. Utvidet-tilstanden er en klasse (ikke :focus-within): å trykke på
+   avkrysningsboksen for signaturen eller bytte mellom svar og notat flytter fokus, og feltet skal ikke klappe sammen midt i. */
+.svar-knapp{display:none}
+@media (max-width:860px){
+  .skriv:not(.utvidet) .skriv-inn{display:none}
+  .skriv:not(.utvidet) .svar-knapp{display:block;width:100%;border:0;border-radius:99px;padding:12px 16px;
+    background:var(--primary);color:var(--primary-fg);font:inherit;font-weight:700;font-size:15px;cursor:pointer;box-shadow:var(--shadow)}
+  .skriv.utvidet .svar-knapp{display:none}
 }
