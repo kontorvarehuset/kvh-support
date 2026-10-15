@@ -506,3 +506,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
    og kunne derfor aldri bli smalere enn knappene til sammen: «Lukk saken» og «Zammad» ble kuttet på en telefon. */
 .handlinger{flex-wrap:wrap;min-width:0}
 @media (max-width:860px){.handlinger{flex:1 1 100%;max-width:100%}}
+
+/* ── Saken på telefon følger det synlige området (tastaturet) ──────────────────────────────────────────
+   Låst til det SYNLIGE vinduet (`--vvh`/`--vvt` settes fra visualViewport i ui.js). Da ligger skriveflata alltid rett over
+   tastaturet. Bare når en sak er åpen; lista ruller som en side, og innbygd (RMM-vinduet) har egen oppførsel. */
+@media (max-width:860px){
+  html:not([data-innbygd]) .app.sak-åpen{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100%)}
+}

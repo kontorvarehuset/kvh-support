@@ -822,6 +822,26 @@ async function oppfrisk() {
   }
 }
 
+/*
+ * TASTATURET PÅ iOS. Safari krymper ikke siden når tastaturet kommer opp: det synlige området (`visualViewport`) blir
+ * lavere, men siden er like høy, så skriveflata nederst havnet BAK tastaturet og man skrev i blinde. Nå følger
+ * saksvisningen det synlige området (`--vvh` og `--vvt`, brukt av app.css), og samtalen ruller ned igjen så siste melding
+ * står rett over feltet.
+ */
+function folgTastaturet() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const sett = () => {
+    const rot = document.documentElement.style;
+    rot.setProperty("--vvh", `${Math.round(vv.height)}px`);
+    rot.setProperty("--vvt", `${Math.round(vv.offsetTop)}px`);
+    if ($("#app") && $("#app").classList.contains("sak-åpen")) rullNed();
+  };
+  vv.addEventListener("resize", sett);
+  vv.addEventListener("scroll", sett);
+  sett();
+}
+
 /* Hvilken versjon som kjører, fra bygget. Står nederst i lista: «ingen endring» er umulig å sjekke uten. */
 async function visVersjon() {
   try {
@@ -834,6 +854,7 @@ async function visVersjon() {
 export async function start() {
   koble();
   visVersjon();
+  folgTastaturet();
   $("#rader").innerHTML = `<div class="laster">Henter saker …</div>`;
   try {
     const sess = await hent("/signshow");
