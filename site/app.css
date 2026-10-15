@@ -413,3 +413,20 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 
 /* Avkrysningsbokser og glidebrytere i husets oransje, ikke nettleserens blå. */
 input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--primary)}
+
+/* ── Smale skjermer (iPhone): ingen sidelengs rulling ───────────────────────────────────────────────
+   Kolonnen het `1fr`, som betyr `minmax(auto, 1fr)`: innholdet (saksrekker med nowrap og lange e-postadresser) fikk
+   kolonnen til å bli bredere enn skjermen, så «Ny sak» og fanen «Lukket» stakk ut til høyre. `minmax(0, 1fr)` og
+   `min-width: 0` på barna lar innholdet krympe til kolonnen i stedet. */
+.liste,.sak,.hero,.listetopp,.rader{min-width:0}
+@media (max-width:860px){
+  .flate{grid-template-columns:minmax(0,1fr)}
+  .app{overflow-x:hidden}
+  .segment button{min-width:0;padding-left:4px;padding-right:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* iOS zoomer inn på alt som har skrift under 16 px når man trykker i det, og siden blir stående zoomet og bredere enn
+   skjermen. På berøringsskjermer er felt og redigeringsflater derfor minst 16 px. */
+@media (pointer:coarse){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea,.felt,.cc-inn{font-size:16px}
+}
