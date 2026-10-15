@@ -10,19 +10,20 @@
  * noe vi ikke har skrevet selv: siden har agentens innlogging.
  */
 
-import { hent, IkkeInnlogget } from "./api.js";
+import { hent, put, IkkeInnlogget } from "./api.js";
 import {
-  STATUSNAVN_APNE, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
+  STATUSNAVN_APNE, INGEN_EIER, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
   kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
 } from "./modell.js";
 import { rens } from "./rens.js";
-import { monter, planleggSending } from "./skriv.js";
+import { monter, planleggSending, SPERRE_TIL } from "./skriv.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const S = {
   me: null,
+  agenter: [],
   saker: [],
   lukkede: null,
   brukere: new Map(),
@@ -66,6 +67,22 @@ async function lastArtikler(id) {
   }));
   const sak = alle().find((x) => x.id === id);
   S.artikler.set(id, { oppdatert: sak?.oppdatert, liste: rader.map((a) => byggArtikkel(a, S.brukere)) });
+}
+
+/* Kollegaene saker kan gis til: aktive agenter, uten tjenestebrukere (rolle «Orbit-integrasjon»). */
+async function lastAgenter() {
+  const roller = await hent("/roles");
+  const agent = roller.find((r) => r.name === "Agent");
+  const tjeneste = roller.find((r) => /integrasjon|integration/i.test(r.name));
+  if (!agent) return;
+  const q = new URLSearchParams({ query: `role_ids:${agent.id}`, limit: "100", full: "true" });
+  const res = await hent("/users/search?" + q);
+  const B = (res.assets || {}).User || {};
+  S.agenter = Object.values(B)
+    .filter((b) => b.active && (b.role_ids || []).includes(agent.id) && !(tjeneste && (b.role_ids || []).includes(tjeneste.id)))
+    .map((b) => ({ id: b.id, navn: navnPaa(b) }))
+    .sort((a, b) => a.navn.localeCompare(b.navn, "nb"));
+  for (const b of Object.values(B)) S.brukere.set(b.id, b);
 }
 
 const alle = () => [...S.saker, ...(S.lukkede || [])];
@@ -258,6 +275,64 @@ function feilVedSending(j, e) {
   toast("Ikke sendt: " + e.message);
 }
 
+function eierKnapp(sak) {
+  if (sak.status === "lukket") return `<span class="chip" style="padding:5px 12px">${sak.eier ? "Eier: " + esc(sak.eier) : "Uten eier"}</span>`;
+  const meg = sak.eierId === S.me?.id;
+  const kn = sak.eier
+    ? `<span class="mini-av ${meg ? "" : "andre"}">${esc(initialer(sak.eier))}</span>${esc(meg ? "Meg" : sak.eier.split(" ")[0])}`
+    : `<span class="mini-av ingen">–</span>Uten eier`;
+  const andre = S.agenter.filter((a) => a.id !== S.me?.id);
+  return `<button class="knapp eier-b" id="eier-b" aria-haspopup="menu" aria-expanded="false" title="Eier av saken">${kn} ▾</button>
+    <div class="meny-pop" id="eier-pop" role="menu" hidden>
+      ${!meg ? `<button role="menuitem" class="ta" data-e="${S.me?.id}"><span>Ta saken selv</span><span></span></button>${andre.length ? '<div class="sep"></div>' : ""}` : ""}
+      ${andre.length ? '<div class="h">Gi saken til</div>' : ""}
+      ${andre.map((a) => `<button role="menuitem" data-e="${a.id}"><span class="navn"><span class="mini-av andre">${esc(initialer(a.navn))}</span>${esc(a.navn)}</span>${sak.eierId === a.id ? '<span class="nå">Eier nå</span>' : ""}</button>`).join("")}
+      ${sak.eier ? `<div class="sep"></div><button role="menuitem" data-e="0"><span>Fjern eier</span><span></span></button>` : ""}
+    </div>`;
+}
+
+function tegnSakTopp(sak) {
+  const rot = $("#sak-topp"); if (!rot) return;
+  rot.innerHTML = `
+      <button class="tilbake" data-a="tilbake">‹ Saker</button>
+      <div class="tekst">
+        <div class="meta"><span class="mono">#${esc(sak.nummer)}</span><span>·</span><span>${esc(sak.kunde)}</span></div>
+        <h2>${esc(sak.emne)}</h2>
+        <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
+      </div>
+      <div class="handlinger">${eierKnapp(sak)}<a class="knapp primær" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener">Åpne i Zammad ↗</a></div>`;
+}
+
+/* Eier endres med én PUT på saken, i den innloggedes navn. 1 er Zammads «ingen eier». */
+async function settEier(sak, nyId) {
+  if (SPERRE_TIL && String(sak.nummer) !== SPERRE_TIL) return toast(`Sperret i prøvemodus: kan bare endres på #${SPERRE_TIL}.`);
+  const forrige = sak.eierId ?? INGEN_EIER, nytt = nyId || INGEN_EIER;
+  if (forrige === nytt) return;
+  const navn = (id) => (id === INGEN_EIER ? null : (S.agenter.find((a) => a.id === id)?.navn || S.brukere.get(id) && navnPaa(S.brukere.get(id)) || "kollega"));
+  try {
+    await put(`/tickets/${sak.id}`, { owner_id: nytt });
+  } catch (e) {
+    if (e instanceof IkkeInnlogget) return visInnlogging();
+    return toast("Kunne ikke endre eier: " + e.message);
+  }
+  await etterEndring(sak.id);
+  const tekst = nytt === INGEN_EIER ? "Eieren er fjernet" : nytt === S.me?.id ? "Du eier saken nå" : `Saken er gitt til ${navn(nytt)}`;
+  toast(tekst, async () => {
+    try {
+      await put(`/tickets/${sak.id}`, { owner_id: forrige });
+      await etterEndring(sak.id);
+      toast("Eier satt tilbake.");
+    } catch (e) { toast("Kunne ikke angre: " + e.message); }
+  });
+}
+
+async function etterEndring(id) {
+  try { await lastSaker(); } catch (e) { toast("Endret, men kunne ikke oppdatere lista: " + e.message); }
+  tegnHero(); tegnFaner(); tegnListe();
+  const sak = finn(id);
+  if (sak && S.valgt === id) tegnSakTopp(sak);
+}
+
 function tegnSak() {
   const sak = S.valgt ? finn(S.valgt) : null;
   if (!sak) { $("#sak").innerHTML = `<div class="tomt" style="margin:auto"><div class="w">Velg en sak</div>Saken åpnes her.</div>`; return; }
@@ -265,20 +340,13 @@ function tegnSak() {
     ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span></div>`
     : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Åpne den i Zammad for å svare.</span></div>` : "";
   $("#sak").innerHTML = `
-    <div class="saktopp">
-      <button class="tilbake" data-a="tilbake">‹ Saker</button>
-      <div class="tekst">
-        <div class="meta"><span class="mono">#${esc(sak.nummer)}</span><span>·</span><span>${esc(sak.kunde)}</span></div>
-        <h2>${esc(sak.emne)}</h2>
-        <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""} · ${sak.eier ? "Eier: " + esc(sak.eier) : "Uten eier"}</div>
-      </div>
-      <div class="handlinger"><a class="knapp primær" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener">Åpne i Zammad ↗</a></div>
-    </div>
+    <div class="saktopp" id="sak-topp"></div>
     <div class="tråd" id="tråd"><div class="tråd-inn">
       ${banner}
       <div id="art-rot"></div>
       <div id="skriv-rot"></div>
     </div></div>`;
+  tegnSakTopp(sak);
   tegnArtikkelRot(sak);
   monterSkriveflate(sak);
   const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight;
@@ -351,12 +419,19 @@ function koble() {
     helhet();
     if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
   });
-  $("#sak").addEventListener("click", (e) => { if (e.target.closest("[data-a='tilbake']")) $("#app").classList.remove("sak-åpen"); });
+  $("#sak").addEventListener("click", (e) => {
+    if (e.target.closest("[data-a='tilbake']")) $("#app").classList.remove("sak-åpen");
+    const eb = e.target.closest("#eier-b");
+    if (eb) { const p = $("#eier-pop"); p.hidden = !p.hidden; eb.setAttribute("aria-expanded", String(!p.hidden)); return; }
+    const ev = e.target.closest("[data-e]");
+    if (ev && S.valgt) { const sak = finn(S.valgt); const p = $("#eier-pop"); if (p) p.hidden = true; if (sak) settEier(sak, Number(ev.dataset.e)); }
+  });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".handlinger")) { const p = $("#eier-pop"); if (p) p.hidden = true; } });
   document.addEventListener("click", (e) => {
     if (e.target.matches(".boble img")) { $("#lys-bilde").src = e.target.src; $("#lys").classList.add("på"); }
   });
   $("#lys").addEventListener("click", () => $("#lys").classList.remove("på"));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#lys").classList.remove("på"); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#lys").classList.remove("på"); const p = $("#eier-pop"); if (p) p.hidden = true; } });
   $("#tema").addEventListener("click", () => {
     const r = document.documentElement;
     const mork = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
@@ -370,9 +445,12 @@ function koble() {
 async function oppfrisk() {
   if (document.hidden) return;
   try {
+    const eierFoer = S.valgt ? finn(S.valgt)?.eierId : undefined;
     await lastSaker();
     if (S.fane === "lukket") await lastLukkede();
     const sak = S.valgt ? finn(S.valgt) : null;
+    /* Eieren kan være endret av en kollega: tegn toppen på nytt, men bare da (åpen meny skal ikke lukkes av seg selv). */
+    if (sak && sak.eierId !== eierFoer) tegnSakTopp(sak);
     const ar = S.valgt ? S.artikler.get(S.valgt) : null;
     const endret = sak && ar && sak.oppdatert !== ar.oppdatert;
     if (endret) await lastArtikler(S.valgt);
@@ -393,6 +471,7 @@ export async function start() {
     S.me = { id: b.id, navn: navnPaa(b) };
     S.brukere.set(b.id, b);
     await lastSaker();
+    try { await lastAgenter(); } catch { /* eiermenyen mangler kollegaer, men siden virker */ }
   } catch (e) {
     if (e instanceof IkkeInnlogget) return visInnlogging();
     $("#rader").innerHTML = `<div class="feil"><b>Kunne ikke hente saker</b>${esc(e.message)}</div>`;
