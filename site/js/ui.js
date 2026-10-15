@@ -25,6 +25,14 @@ const $ = (s) => document.querySelector(s);
 
 /* Eneste opprinnelse som får ramme inn siden og snakke med den (nginx sier det samme i frame-ancestors). */
 const RMM_OPPRINNELSE = "https://rmm.kvh.no";
+
+/*
+ * Innbygd (i vinduet i RMM-et) velger siden ALDRI en sak av seg selv. Vinduet er smalt, og første sak sto åpen
+ * hver gang man åpnet Support, så man aldri så lista først. I vanlig fane er første sak fortsatt valgt, siden lista og
+ * saken står ved siden av hverandre der.
+ */
+const INNBYGD = !!document.documentElement.dataset.innbygd;
+const forsteSakId = (liste) => (INNBYGD || !liste.length ? null : liste[0].id);
 function meldOpp(ny) {
   if (window.parent === window) return;
   try { window.parent.postMessage({ type: "kvhui-antall", ny }, RMM_OPPRINNELSE); } catch { /* uten ramme eller blokkert */ }
@@ -490,7 +498,7 @@ async function endreStatus(sak, kropp, tekst) {
 
 function velgNeste(forbiId) {
   const l = synlige().filter((x) => x.id !== forbiId);
-  S.valgt = l.length ? l[0].id : null;
+  S.valgt = forsteSakId(l);
   /* Etter lukking eller på vent går man tilbake til lista i en smal visning (der er saken man stod på borte). */
   $("#app").classList.remove("sak-åpen");
   helhet();
@@ -624,7 +632,7 @@ async function kjorSok() {
     S.treff = { q, liste: [], total: 0, laster: false, feil: e.message };
   }
   const l = synlige();
-  if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+  if (!l.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(l);
   helhet();
   if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
 }
@@ -633,7 +641,7 @@ function nullstillSok() {
   S.sokSeq++; S.treff = null; S.filter = "";
   const sok = $("#sok"); if (sok) sok.value = "";
   tegnOmfang();
-  const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+  const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(l);
   helhet();
 }
 
@@ -668,7 +676,7 @@ async function byttFane(f) {
     try { await lastLukkede(); } catch (e) { S.lukkede = []; toast("Kunne ikke hente lukkede saker: " + e.message); }
   }
   const lista = synlige();
-  if (!lista.some((x) => x.id === S.valgt)) S.valgt = lista.length ? lista[0].id : null;
+  if (!lista.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(lista);
   $("#app").classList.remove("sak-åpen");
   helhet();
   if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
@@ -696,7 +704,7 @@ function koble() {
   $("#visning").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     S.visning = b.dataset.v; S.spesial = null;
-    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(l);
     helhet();
   });
   let sokTid = 0;
@@ -711,7 +719,7 @@ function koble() {
   $("#vis-vent").addEventListener("change", (e) => {
     S.visVent = e.target.checked;
     try { localStorage.setItem("kvhui-vis-vent", S.visVent ? "1" : "0"); } catch { /* ingen lagring */ }
-    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(l);
     helhet();
   });
   $("#omfang").addEventListener("click", (e) => {
@@ -733,7 +741,7 @@ function koble() {
     S.spesial = k === "uten" || k === "gamle" ? (S.spesial === k ? null : k) : null;
     S.fane = k === "vent" ? "vent" : "åpen";
     if (S.spesial === "uten") S.visning = "alle";
-    const l = synlige(); S.valgt = l.length ? l[0].id : null;
+    const l = synlige(); S.valgt = forsteSakId(l);
     $("#app").classList.remove("sak-åpen");
     helhet();
     if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
@@ -827,7 +835,7 @@ export async function start() {
     return;
   }
   const lista = synlige();
-  S.valgt = lista.length ? lista[0].id : null;
+  S.valgt = forsteSakId(lista);
   helhet();
   if (S.valgt) velgSak(S.valgt, true);
   setInterval(oppfrisk, 60_000);
