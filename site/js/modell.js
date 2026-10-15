@@ -28,6 +28,13 @@ export function navnPaa(b) {
   return n || b.login || b.email || "";
 }
 
+/** Adressen til en brukers profilbilde i Zammad, eller tom streng. Zammad henter bildet selv
+    (for eksempel fra Microsoft-innloggingen), så vi trenger ikke snakke med Graph. */
+export function bildeUrl(bruker) {
+  const id = bruker && bruker.image;
+  return id && /^[A-Za-z0-9_-]{6,128}$/.test(String(id)) ? `/api/v1/users/image/${id}` : "";
+}
+
 export function initialer(navn) {
   return (navn || "?").split(/\s+/).filter(Boolean).map((d) => d[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -158,6 +165,7 @@ export function byggArtikkel(a, brukere) {
     emne: a.subject || "",
     html: a.content_type === "text/html",
     tekst: a.body || "",
+    bilde: (bruker && bruker.image) || "",
     til: a.to || "",
     cc: (a.cc || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
     kanal: a.type || "",

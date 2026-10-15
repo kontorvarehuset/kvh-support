@@ -12,7 +12,7 @@
 
 import { hent, put, IkkeInnlogget } from "./api.js";
 import {
-  STATUSNAVN_APNE, INGEN_EIER, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
+  STATUSNAVN_APNE, INGEN_EIER, bildeUrl, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
   kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
 } from "./modell.js";
 import { rens } from "./rens.js";
@@ -85,6 +85,12 @@ async function lastAgenter() {
   for (const b of Object.values(B)) S.brukere.set(b.id, b);
 }
 
+/* Initialer med profilbildet lagt oppå. Mangler bildet eller feiler lasting, står initialene igjen. */
+const bildeId = (id) => bildeUrl(S.brukere.get(id));
+function avatarInnhold(navn, url) {
+  return esc(initialer(navn)) + (url ? `<img class="prof" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "");
+}
+
 const alle = () => [...S.saker, ...(S.lukkede || [])];
 const finn = (id) => alle().find((x) => x.id === id);
 
@@ -104,7 +110,7 @@ function synlige() {
 
 function tegnBruker() {
   $("#bruker").innerHTML = S.me
-    ? `<span class="mini-av">${esc(initialer(S.me.navn))}</span><span class="bn">${esc(S.me.navn)}</span>`
+    ? `<span class="mini-av">${avatarInnhold(S.me.navn, bildeId(S.me.id))}</span><span class="bn">${esc(S.me.navn)}</span>`
     : "";
 }
 
@@ -165,7 +171,7 @@ function tegnListe() {
     if (x.fristNaadd) m.push(`<span class="chip ingen">Påminnelsen er nådd</span>`);
     if (x.dager >= 1) m.push(`<span class="chip vent">Venter ${x.dager} d</span>`);
     if (!x.eier && x.status !== "lukket") m.push(`<span class="chip ingen">Uten eier</span>`);
-    const eierPrikk = x.eier ? `<span class="mini-av ${x.eierId === S.me?.id ? "" : "andre"}" title="${esc(x.eier)}">${esc(initialer(x.eier))}</span>` : "";
+    const eierPrikk = x.eier ? `<span class="mini-av ${x.eierId === S.me?.id ? "" : "andre"}" title="${esc(x.eier)}">${avatarInnhold(x.eier, bildeId(x.eierId))}</span>` : "";
     return `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
       ${x.venterPaaOss ? '<span class="prikk" aria-label="Venter på svar fra oss"></span>' : ""}
       <span class="l1"><span class="kunde">${esc(x.kunde)}</span><span class="tid">${esc(kortTid(x.sist))}</span>${eierPrikk}</span>
@@ -187,7 +193,7 @@ function tegnArtikler(sak, liste) {
   return liste.map((a, i) => a.slag === "system"
     ? `<div class="hend"><span class="sys">Automatisk svar til ${esc(navnFraFra(a.til) || a.til || "kunden")}${a.emne ? ": «" + esc(a.emne) + "»" : ""}</span><span class="sys">· ${esc(langTid(a.tid))}</span></div>`
     : `<article class="mld ${a.slag}">
-        <div class="av" aria-hidden="true">${esc(initialer(a.navn))}</div>
+        <div class="av" aria-hidden="true">${avatarInnhold(a.navn, bildeUrl({ image: a.bilde }))}</div>
         <div>${hode(a)}
           ${a.cc.length ? `<div class="ccvis">Cc: ${a.cc.map(esc).join(", ")}</div>` : ""}
           <div class="boble" data-a="${i}"></div>
@@ -279,14 +285,14 @@ function eierKnapp(sak) {
   if (sak.status === "lukket") return `<span class="chip" style="padding:5px 12px">${sak.eier ? "Eier: " + esc(sak.eier) : "Uten eier"}</span>`;
   const meg = sak.eierId === S.me?.id;
   const kn = sak.eier
-    ? `<span class="mini-av ${meg ? "" : "andre"}">${esc(initialer(sak.eier))}</span>${esc(meg ? "Meg" : sak.eier.split(" ")[0])}`
+    ? `<span class="mini-av ${meg ? "" : "andre"}">${avatarInnhold(sak.eier, bildeId(sak.eierId))}</span>${esc(meg ? "Meg" : sak.eier.split(" ")[0])}`
     : `<span class="mini-av ingen">–</span>Uten eier`;
   const andre = S.agenter.filter((a) => a.id !== S.me?.id);
   return `<button class="knapp eier-b" id="eier-b" aria-haspopup="menu" aria-expanded="false" title="Eier av saken">${kn} ▾</button>
     <div class="meny-pop" id="eier-pop" role="menu" hidden>
       ${!meg ? `<button role="menuitem" class="ta" data-e="${S.me?.id}"><span>Ta saken selv</span><span></span></button>${andre.length ? '<div class="sep"></div>' : ""}` : ""}
       ${andre.length ? '<div class="h">Gi saken til</div>' : ""}
-      ${andre.map((a) => `<button role="menuitem" data-e="${a.id}"><span class="navn"><span class="mini-av andre">${esc(initialer(a.navn))}</span>${esc(a.navn)}</span>${sak.eierId === a.id ? '<span class="nå">Eier nå</span>' : ""}</button>`).join("")}
+      ${andre.map((a) => `<button role="menuitem" data-e="${a.id}"><span class="navn"><span class="mini-av andre">${avatarInnhold(a.navn, bildeId(a.id))}</span>${esc(a.navn)}</span>${sak.eierId === a.id ? '<span class="nå">Eier nå</span>' : ""}</button>`).join("")}
       ${sak.eier ? `<div class="sep"></div><button role="menuitem" data-e="0"><span>Fjern eier</span><span></span></button>` : ""}
     </div>`;
 }
@@ -398,6 +404,8 @@ function toast(tekst, angre) {
 }
 
 function koble() {
+  /* `error` bobler ikke, så den fanges i fangstfasen. Et bilde som ikke finnes, fjernes og initialene vises. */
+  document.addEventListener("error", (e) => { if (e.target && e.target.classList && e.target.classList.contains("prof")) e.target.remove(); }, true);
   $("#faner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) byttFane(b.dataset.f); });
   $("#visning").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;

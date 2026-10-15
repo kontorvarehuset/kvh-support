@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { byggSaker, byggArtikkel, skillSitat, navnFraFra, kortTid, STATUS_ID } from "../site/js/modell.js";
+import { byggSaker, byggArtikkel, skillSitat, navnFraFra, kortTid, bildeUrl, STATUS_ID } from "../site/js/modell.js";
 
 const naa = new Date("2026-10-15T12:00:00").getTime();
 const res = {
@@ -62,4 +62,8 @@ const pend = byggSaker({ record_ids: [1, 2, 3, 4], assets: { Ticket: {
 assert.deepEqual(pend.map((x) => x.status), ["åpen", "vent", "åpen", "vent"], "passert frist er åpen, fram i tid er på vent");
 assert.equal(pend[0].fristNaadd, true); assert.equal(pend[0].venterPaaOss, true); assert.equal(pend[0].dager, 1);
 assert.equal(pend[1].fristNaadd, false); assert.equal(pend[3].status, "vent", "waiting for customer forblir på vent");
+assert.equal(bildeUrl({ image: "a1b2c3d4e5f6" }), "/api/v1/users/image/a1b2c3d4e5f6");
+assert.equal(bildeUrl({ image: null }), ""); assert.equal(bildeUrl(undefined), "");
+assert.equal(bildeUrl({ image: "../../x" }), "", "ingen stier fra data inn i adressen");
+assert.equal(byggArtikkel({ sender: "Agent", created_by_id: 3 }, new Map([[3, { id: 3, firstname: "F", lastname: "I", image: "abcdef12" }]])).bilde, "abcdef12");
 console.log("modell: ok");
