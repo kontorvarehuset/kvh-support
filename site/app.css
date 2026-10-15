@@ -384,3 +384,8 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .vis-vent{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;color:var(--graphite);cursor:pointer;padding:0 2px}
 .vis-vent[hidden]{display:none}
 .segment button .pluss{color:var(--stale);font-weight:600;font-size:12px;margin-left:3px}
+
+/* Luft mellom siste melding og skriveflata (de ligger i hvert sitt felt etter at skriveflata kom ut av samtalen). */
+.tråd{padding-bottom:24px}
+.skriv-rot{padding-top:2px}
+@media (max-width:860px){.tråd{padding-bottom:16px}}
