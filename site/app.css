@@ -287,3 +287,8 @@ button{font:inherit;color:inherit}
 .laster{padding:40px 24px;color:var(--mist);text-align:center}
 a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .hend .sys{color:var(--mist)}
+
+/* Artiklene ligger i egen beholder (så oppfriskning ikke river ned skriveflata), og da gjelder
+   ikke lenger avstanden fra .tråd-inn. Samme avstand settes her. */
+#art-rot{display:flex;flex-direction:column;gap:18px}
+#art-rot .hend{margin:2px 0}
