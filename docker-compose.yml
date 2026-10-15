@@ -1,0 +1,18 @@
+name: kvh-support
+services:
+  kvhui:
+    image: ghcr.io/kontorvarehuset/kvh-support:latest
+    container_name: kvhui
+    restart: unless-stopped
+    # Samme mønster som Orbit på denne serveren: bare NetBird-adressen og
+    # loopback, aldri 0.0.0.0. NetBird-proxyen når den over 100.76.1.117.
+    ports:
+      - "100.76.1.117:3002:80"
+      - "127.0.0.1:3002:80"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
