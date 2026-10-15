@@ -511,8 +511,8 @@ function tegnSak() {
     <div class="tråd" id="tråd"><div class="tråd-inn">
       <div id="sak-banner"></div>
       <div id="art-rot"></div>
-      <div id="skriv-rot"></div>
-    </div></div>`;
+    </div></div>
+    <div id="skriv-rot" class="skriv-rot"></div>`;
   tegnSakTopp(sak);
   tegnBanner(sak);
   tegnArtikkelRot(sak);

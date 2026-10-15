@@ -352,3 +352,15 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 @media (max-height:640px){
   .hero{display:none}
 }
+
+/* ── Skriveflata ligger UTENFOR samtalen ───────────────────────────────────────────────────────
+   Den var festet nederst inni det rullende feltet, og på lave eller smale vinduer havnet sendeknappene
+   utenfor det som var synlig. Nå er den et eget felt nederst i saken: alltid helt synlig, og samtalen ruller
+   over den. Korte samtaler legges nederst (justify-content:flex-end), rett over skriveflata, så gapet mellom
+   siste melding og feltet er borte. */
+.skriv-rot{flex:none;padding:0 28px}
+.skriv-rot:empty{display:none}
+.skriv-rot .skriv{position:static;max-width:760px;margin:0 auto;padding:8px 0 12px;background:transparent}
+.skriv-inn{max-height:min(45vh,520px)}
+.tråd-inn{min-height:100%;justify-content:flex-end}
+@media (max-width:860px){.skriv-rot{padding:0 12px}}
