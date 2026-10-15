@@ -45,3 +45,5 @@ async function kall(metode, sti, kropp) {
 }
 
 export const hent = (sti) => kall("GET", sti);
+export const post = (sti, kropp) => kall("POST", sti, kropp);
+export const put = (sti, kropp) => kall("PUT", sti, kropp);

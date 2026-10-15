@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import { JSDOM } from "jsdom";
+const dom = new JSDOM("<!doctype html><body></body>");
+globalThis.document = dom.window.document;
+globalThis.window = dom.window;
+const { tilHtml, SPERRE_TIL } = await import("../site/js/skriv.js");
+
+const lag = (html) => { const d = document.createElement("div"); d.innerHTML = html; return d; };
+let r = tilHtml(lag("Hei <b>du</b> &amp; <script>x</script>"));
+assert.equal(r.html.includes("<script"), false, "ingen rå tagger fra innholdet");
+assert.match(r.html, /Hei /); assert.equal(r.tekst, true); assert.equal(r.tomt, false);
+r = tilHtml(lag("<div>Første</div><div><br></div><div>Tredje</div>"));
+assert.equal(r.html, "<div>Første</div><div><br></div><div>Tredje</div>");
+r = tilHtml(lag('<img src="data:image/png;base64,iVBORw0KGgo=">'));
+assert.equal(r.bilder, 1); assert.equal(r.tomt, false, "bare et bilde er ikke tomt");
+r = tilHtml(lag('<img src="javascript:alert(1)"><img src="https://x.example/a.png"><img src="data:image/svg+xml;base64,AAAA">'));
+assert.equal(r.bilder, 0, "bare data:-bilder av trygge typer"); assert.equal(r.html, ""); assert.equal(r.tomt, true);
+r = tilHtml(lag("   <br>  "));
+assert.equal(r.tomt, true, "bare luft er tomt");
+r = tilHtml(lag('Tekst med "sitat" og <tegn>'));
+assert.match(r.html, /&quot;sitat&quot;/); assert.equal(SPERRE_TIL, "13753", "prøvesperren står på testsaken");
+console.log("skriv: ok");

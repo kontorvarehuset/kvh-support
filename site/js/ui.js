@@ -16,6 +16,7 @@ import {
   kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst,
 } from "./modell.js";
 import { rens } from "./rens.js";
+import { monter, planleggSending } from "./skriv.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -227,13 +228,42 @@ function fyllBobler(sak, liste) {
   });
 }
 
+/* Artiklene tegnes for seg, slik at en oppfriskning ikke river ned skriveflata mens noen skriver. */
+function tegnArtikkelRot(sak) {
+  const rot = $("#art-rot"); if (!rot) return;
+  const ar = S.artikler.get(sak.id);
+  rot.innerHTML = (S.feil && S.feil.sak === sak.id ? `<div class="feil"><b>Kunne ikke hente meldingene</b>${esc(S.feil.tekst)}</div>` : "") +
+    (!ar && !(S.feil && S.feil.sak === sak.id) ? `<div class="laster">Henter meldinger …</div>` : "") +
+    (ar ? tegnArtikler(sak, ar.liste) : "");
+  if (ar) fyllBobler(sak, ar.liste);
+}
+
+function monterSkriveflate(sak) {
+  const rot = $("#skriv-rot"); if (!rot) return;
+  if (sak.status === "lukket" || !S.artikler.has(sak.id)) { rot.innerHTML = ""; return; }
+  monter(rot, { sak, toast, planlegg: (j) => planleggSending(j, { toast, ferdig: etterSending, feilet: feilVedSending }) });
+}
+
+async function etterSending(j) {
+  try {
+    await lastSaker();
+    await lastArtikler(j.saksId);
+  } catch (e) { toast("Sendt, men kunne ikke oppdatere visningen: " + e.message); }
+  tegnHero(); tegnFaner(); tegnListe();
+  const sak = finn(j.saksId);
+  if (S.valgt === j.saksId && sak) { tegnArtikkelRot(sak); const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight; }
+}
+
+function feilVedSending(j, e) {
+  toast("Ikke sendt: " + e.message);
+}
+
 function tegnSak() {
   const sak = S.valgt ? finn(S.valgt) : null;
   if (!sak) { $("#sak").innerHTML = `<div class="tomt" style="margin:auto"><div class="w">Velg en sak</div>Saken åpnes her.</div>`; return; }
-  const ar = S.artikler.get(sak.id);
   const banner = sak.status === "vent"
     ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span></div>`
-    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Et nytt svar fra kunden åpner den igjen.</span></div>` : "";
+    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Åpne den i Zammad for å svare.</span></div>` : "";
   $("#sak").innerHTML = `
     <div class="saktopp">
       <button class="tilbake" data-a="tilbake">‹ Saker</button>
@@ -246,12 +276,11 @@ function tegnSak() {
     </div>
     <div class="tråd" id="tråd"><div class="tråd-inn">
       ${banner}
-      ${S.feil && S.feil.sak === sak.id ? `<div class="feil"><b>Kunne ikke hente meldingene</b>${esc(S.feil.tekst)}</div>` : ""}
-      ${!ar && !(S.feil && S.feil.sak === sak.id) ? `<div class="laster">Henter meldinger …</div>` : ""}
-      ${ar ? tegnArtikler(sak, ar.liste) : ""}
-      ${ar ? `<div class="les-merknad"><span>Denne visningen er foreløpig <b>bare for lesing</b>. Svar, notater, eier og lukking gjør du i Zammad.</span><a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener">Svar i Zammad ↗</a></div>` : ""}
+      <div id="art-rot"></div>
+      <div id="skriv-rot"></div>
     </div></div>`;
-  if (ar) fyllBobler(sak, ar.liste);
+  tegnArtikkelRot(sak);
+  monterSkriveflate(sak);
   const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight;
 }
 
@@ -292,11 +321,12 @@ function visInnlogging() {
   $("#app").classList.add("sak-åpen");
 }
 
-let toastT;
-function toast(tekst) {
-  $("#toast-t").textContent = tekst; $("#toast-b").hidden = true;
+let toastT, angreFn = null;
+function toast(tekst, angre) {
+  $("#toast-t").textContent = tekst;
+  const b = $("#toast-b"); b.hidden = !angre; angreFn = angre || null;
   $("#toast").classList.add("på");
-  clearTimeout(toastT); toastT = setTimeout(() => $("#toast").classList.remove("på"), 3500);
+  clearTimeout(toastT); toastT = setTimeout(() => $("#toast").classList.remove("på"), angre ? 11_000 : 4_000);
 }
 
 function koble() {
@@ -309,6 +339,7 @@ function koble() {
   });
   $("#sok").addEventListener("input", (e) => { S.filter = e.target.value; tegnListe(); });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
+  $("#toast-b").addEventListener("click", () => { if (angreFn) angreFn(); });
   $("#hero").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-t]"); if (!b) return;
     const k = b.dataset.t;
@@ -346,7 +377,7 @@ async function oppfrisk() {
     const endret = sak && ar && sak.oppdatert !== ar.oppdatert;
     if (endret) await lastArtikler(S.valgt);
     tegnHero(); tegnFaner(); tegnListe();
-    if (endret) tegnSak();
+    if (endret) { const s2 = finn(S.valgt); if (s2) tegnArtikkelRot(s2); }
   } catch (e) {
     if (e instanceof IkkeInnlogget) visInnlogging();
   }

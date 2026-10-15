@@ -13,6 +13,9 @@ export const STATUS_ID = {
   3: "vent", 6: "vent", 7: "vent", 8: "vent",
   4: "lukket", 5: "sammenslått",
 };
+/* Statuser som har en frist: 3 pending reminder, 6 pending close, og de to egne (7, 8), som er
+   av samme type som pending reminder (målt 15. okt. 2026). */
+export const VENTESTATUSER = new Set([3, 6, 7, 8]);
 export const STATUSNAVN_APNE = ["new", "open", "pending reminder", "pending close", "waiting for customer", "waiting for supplier"];
 /* Bruker 1 er Zammads systembruker: en sak eid av den har ingen eier. */
 export const INGEN_EIER = 1;
@@ -55,7 +58,7 @@ export function byggSaker(res, naa = Date.now()) {
        saker» (3) telte pending reminder som åpne også når fristen lå fram i tid,
        mens vi vil se hva som faktisk haster. */
     const ventTid = tid(t.pending_time);
-    const fristNaadd = (t.state_id === 3 || t.state_id === 6) && ventTid !== null && ventTid <= naa;
+    const fristNaadd = VENTESTATUSER.has(t.state_id) && ventTid !== null && ventTid <= naa;
     if (fristNaadd) status = "åpen";
     /* «Venter på oss»: fristen er nådd, eller kunden skrev sist og vi har ikke svart etter det. */
     const venterPaaOss = status === "åpen" && (fristNaadd || (sistKunde !== null && (sistOss === null || sistKunde > sistOss)));
