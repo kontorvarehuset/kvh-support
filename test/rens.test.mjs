@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import { JSDOM } from "jsdom";
+const dom = new JSDOM("<!doctype html><body></body>");
+globalThis.document = dom.window.document;
+globalThis.DOMParser = dom.window.DOMParser;
+const { rens } = await import("../site/js/rens.js");
+
+const tekst = (f) => { const d = document.createElement("div"); d.appendChild(f.cloneNode(true)); return d.innerHTML; };
+const r = (h, v) => rens(h, v);
+
+let x = r('<p onclick="x()">hei<script>alert(1)</script></p><style>p{}</style><iframe src="https://e.example"></iframe>');
+assert.equal(tekst(x.svar), "<p>hei</p>", "skript, style og iframe forsvinner, og onclick fjernes");
+x = r('<a href="javascript:alert(1)">klikk</a><a href="https://ok.example/x" onclick="1">ok</a><a href=" JaVaScRiPt:1">v</a>');
+assert.ok(!/javascript/i.test(tekst(x.svar)), "ingen javascript:-lenker");
+assert.match(tekst(x.svar), /href="https:\/\/ok\.example\/x" target="_blank" rel="noopener noreferrer"/);
+x = r('<img src="x" onerror="alert(1)"><img src="https://b.example/p.png" onerror="alert(1)"><img src="data:image/svg+xml;base64,PHN2Zz4=">');
+const t = tekst(x.svar);
+assert.ok(!/onerror/.test(t), "ingen onerror");
+assert.equal((t.match(/<img/g) || []).length, 1, "bare https-bildet består");
+x = r('<svg><script>1</script></svg><math></math><form action="/x"><input></form><font color="red">farge</font>');
+assert.equal(tekst(x.svar), "farge", "svg, math og skjema droppes; ukjente tagger pakkes ut");
+x = r("<p>Svar</p><blockquote>Gammelt</blockquote><div class=\"gmail_quote\">Mer gammelt</div>");
+assert.equal(tekst(x.svar), "<p>Svar</p>");
+assert.match(tekst(x.sitat), /Gammelt/); assert.match(tekst(x.sitat), /Mer gammelt/);
+x = r('<img src="cid:abc@x">', { cidTilUrl: (c) => (c === "abc@x" ? "/api/v1/ticket_attachment/1/2/3" : null) });
+assert.match(tekst(x.svar), /src="\/api\/v1\/ticket_attachment\/1\/2\/3"/); assert.ok(x.brukteCid.has("abc@x"));
+x = r('<img src="cid:ukjent">', { cidTilUrl: () => null });
+assert.equal(tekst(x.svar), "", "cid uten vedlegg gir ikke noe bilde");
+x = r('<img src="/api/v1/users/1">');
+assert.equal(tekst(x.svar), "", "bare vedleggsstier slipper gjennom fra samme opprinnelse");
+x = r('<table><tr><td colspan="2" style="x" onclick="1">a</td></tr></table>');
+assert.match(tekst(x.svar), /<td colspan="2">a<\/td>/);
+console.log("rens: ok");

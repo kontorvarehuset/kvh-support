@@ -1,4 +1,45 @@
 <!doctype html>
-<html lang="nb"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>KVH Support</title>
-<body style="font-family:system-ui;padding:2rem"><h1>KVH Support</h1><p>Under bygging.</p></body></html>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topp">
+    <div class="merke"><span class="w">KVH</span><span class="pkt"></span><span class="s">SUPPORT</span></div>
+    <span class="fyll"></span>
+    <a class="ut" href="https://rmm.kvh.no" target="_blank" rel="noopener" title="Åpner RMM i en ny fane">RMM<span aria-hidden="true">↗</span></a>
+    <a class="ut" href="https://orbit.kvh.no" target="_blank" rel="noopener" title="Åpner Orbit i en ny fane">Orbit<span aria-hidden="true">↗</span></a>
+    <a class="ut" href="/" target="_blank" rel="noopener" title="Åpner Zammad i en ny fane">Zammad<span aria-hidden="true">↗</span></a>
+    <button class="tema" id="tema" title="Bytt lys/mørk" aria-label="Bytt lys eller mørk drakt">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <div class="bruker" id="bruker" title="Innlogget via Zammad"></div>
+  </header>
+
+  <section class="hero" id="hero" aria-label="Oversikt"></section>
+
+  <main class="flate">
+    <section class="liste" aria-label="Saker">
+      <div class="listetopp">
+        <div class="rad1"><h1>Saker</h1></div>
+        <div class="segment" role="tablist" id="faner"></div>
+        <input class="sok" id="sok" type="search" placeholder="Søk i kunde, emne eller saksnummer" aria-label="Søk">
+        <div class="visning" role="group" aria-label="Visning" id="visning"></div>
+      </div>
+      <div class="rader" id="rader"></div>
+    </section>
+    <section class="sak" id="sak" aria-live="polite"></section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"><span id="toast-t"></span><button id="toast-b" hidden>Angre</button></div>
+<div class="lysboks" id="lys"><img alt="Skjermbilde, forstørret" id="lys-bilde"></div>
+</body>
+</html>

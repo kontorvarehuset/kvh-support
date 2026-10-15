@@ -1,0 +1,289 @@
+:root{
+  --paper:#F4F1EA; --card:#FFFFFF; --sand:#F5F3EF; --raised:#FBFAF7;
+  --ink:#171A1F; --graphite:#4B515A; --mist:#686D75;
+  --hairline:#E3E1DC; --rule:#CFCBC2;
+  --primary:#F17222; --primary-deep:#9A4713; --primary-tint:#FDF0E7; --primary-fg:#171A1F;
+  --online:#1F7A4D; --online-tint:#E7F1EB;
+  --stale:#9A6206; --stale-tint:#FBF0DC;
+  --danger:#B3261E; --danger-tint:#F9EAE9;
+  --notat:#FBF3DF; --notat-kant:#E9D9A8;
+  --shadow:0 1px 2px rgb(23 26 31/.05),0 1px 3px rgb(23 26 31/.04);
+  --lift:0 10px 30px rgb(23 26 31/.10),0 2px 6px rgb(23 26 31/.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#171513; --card:#201E1B; --sand:#292623; --raised:#2B2824;
+  --ink:#F4F1EA; --graphite:#B6B0A6; --mist:#9C968C;
+  --hairline:#35312C; --rule:#46403A;
+  --primary:#F98A44; --primary-deep:#FFB07A; --primary-tint:#2A1D14; --primary-fg:#171A1F;
+  --online:#5DBE8C; --online-tint:#152219;
+  --stale:#DFA53C; --stale-tint:#251C0E;
+  --danger:#E1786F; --danger-tint:#2A1917;
+  --notat:#2A2316; --notat-kant:#4A3E22;
+  --shadow:0 1px 2px rgb(0 0 0/.4),0 1px 3px rgb(0 0 0/.3);
+  --lift:0 10px 30px rgb(0 0 0/.45),0 2px 6px rgb(0 0 0/.3);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171513; --card:#201E1B; --sand:#292623; --raised:#2B2824;
+  --ink:#F4F1EA; --graphite:#B6B0A6; --mist:#9C968C;
+  --hairline:#35312C; --rule:#46403A;
+  --primary:#F98A44; --primary-deep:#FFB07A; --primary-tint:#2A1D14; --primary-fg:#171A1F;
+  --online:#5DBE8C; --online-tint:#152219;
+  --stale:#DFA53C; --stale-tint:#251C0E;
+  --danger:#E1786F; --danger-tint:#2A1917;
+  --notat:#2A2316; --notat-kant:#4A3E22;
+  --shadow:0 1px 2px rgb(0 0 0/.4),0 1px 3px rgb(0 0 0/.3);
+  --lift:0 10px 30px rgb(0 0 0/.45),0 2px 6px rgb(0 0 0/.3);
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 "Hanken Grotesk",ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+
+/* Skall: samme topplinje som RMM-et */
+.app{height:100%;display:flex;flex-direction:column}
+.topp{flex:none;display:flex;align-items:center;gap:14px;padding:0 20px;height:52px;background:color-mix(in srgb,var(--paper) 72%,var(--card));border-bottom:1px solid var(--hairline)}
+.merke{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+.merke .w{font:400 21px/1 "Instrument Serif",Georgia,serif}
+.merke .s{font:500 10px "JetBrains Mono",monospace;color:var(--mist);letter-spacing:.14em}
+.merke .pkt{width:4px;height:4px;border-radius:50%;background:var(--primary);align-self:center}
+.merke .w{font-size:24px}
+.fyll{flex:1}
+.ut{color:var(--graphite);text-decoration:none;font-weight:500;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.ut:hover{background:var(--sand);color:var(--ink)}
+.ut span{margin-left:3px;font-size:.85em;color:var(--mist)}
+.bruker{display:flex;align-items:center;gap:8px;padding:3px 12px 3px 4px;border:1px solid var(--hairline);border-radius:99px;background:var(--card);box-shadow:var(--shadow);font-weight:600;font-size:13px;white-space:nowrap}
+.bruker .mini-av{width:26px;height:26px;font-size:11px}
+@media (max-width:860px){.ut{display:none}.bruker .bn{display:none}.bruker{padding:3px}}
+.mock{font:500 10px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);border:1px dashed var(--rule);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.tema{border:1px solid var(--hairline);background:var(--card);width:30px;height:30px;border-radius:99px;cursor:pointer;display:grid;place-items:center}
+.tema:hover{border-color:var(--primary)}
+
+/* Arbeidsflate: liste | sak */
+.flate{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr}
+.liste{min-height:0;display:flex;flex-direction:column;border-right:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 55%,var(--card))}
+.listetopp{padding:18px 16px 10px;display:flex;flex-direction:column;gap:12px}
+.listetopp h1{margin:0;font:600 22px/1.1 "Hanken Grotesk",sans-serif;letter-spacing:-.02em}
+.segment{display:flex;background:var(--sand);border-radius:10px;padding:3px;gap:2px}
+.segment button{flex:1;border:0;background:transparent;padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--graphite);font-weight:500;font-size:13px;display:flex;justify-content:center;gap:6px;align-items:baseline}
+.segment button .t{color:var(--mist);font-weight:500;font-size:12px;font-variant-numeric:tabular-nums}
+.segment button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.sok{border:1px solid var(--hairline);background:var(--card);border-radius:10px;padding:8px 12px;font:inherit;color:var(--ink);width:100%}
+.sok::placeholder{color:var(--mist)}
+.sok:focus{outline:2px solid var(--primary);outline-offset:1px;border-color:transparent}
+.rader{flex:1;overflow-y:auto;padding:4px 8px 16px}
+.rad{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:12px;padding:11px 12px 11px 26px;cursor:pointer;position:relative;margin-bottom:2px}
+.rad:hover{background:color-mix(in srgb,var(--card) 70%,transparent)}
+.rad[aria-current="true"]{background:var(--card);box-shadow:var(--shadow)}
+.rad .prikk{position:absolute;left:11px;top:19px;width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.rad .l1{display:flex;gap:8px;align-items:baseline}
+.rad .kunde{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rad .tid{color:var(--mist);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rad .emne{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rad .utdrag{color:var(--mist);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rad .merker{display:flex;gap:6px;margin-top:5px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.02em;padding:1px 8px;border-radius:99px;background:var(--sand);color:var(--graphite)}
+.chip.vent{background:var(--stale-tint);color:var(--stale)}
+.chip.ok{background:var(--online-tint);color:var(--online)}
+.tomt{padding:40px 24px;text-align:center;color:var(--mist)}
+.tomt .w{font:400 26px/1.1 "Instrument Serif",Georgia,serif;color:var(--ink);margin-bottom:6px}
+
+/* Saken */
+.sak{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--paper)}
+.saktopp{flex:none;padding:18px 28px 14px;display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid var(--hairline)}
+.tilbake{display:none;border:0;background:transparent;cursor:pointer;padding:4px 8px 4px 0;color:var(--primary-deep);font-weight:600}
+.saktopp .tekst{flex:1;min-width:0}
+.saktopp .meta{color:var(--mist);font-size:12.5px;margin-bottom:3px;display:flex;gap:8px;flex-wrap:wrap}
+.saktopp h2{margin:0;font:600 24px/1.15 "Hanken Grotesk",sans-serif;letter-spacing:-.025em;text-wrap:balance}
+.saktopp .fra{color:var(--graphite);margin-top:4px;font-size:13px}
+.handlinger{display:flex;gap:8px;align-items:center;position:relative;flex:none}
+.knapp{border:1px solid var(--rule);background:var(--card);padding:7px 14px;border-radius:99px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;box-shadow:var(--shadow)}
+.knapp:hover{border-color:var(--primary)}
+.knapp:focus-visible,.hake:focus-visible,.rad:focus-visible,.segment button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.knapp.primær{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.knapp.primær:hover{background:color-mix(in srgb,var(--ink) 86%,var(--primary))}
+.knapp.oransje{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.knapp[disabled]{opacity:.45;cursor:default}
+.meny-pop{position:absolute;top:calc(100% + 8px);right:0;width:250px;background:var(--card);border:1px solid var(--hairline);border-radius:14px;box-shadow:var(--lift);padding:6px;z-index:20}
+.meny-pop[hidden]{display:none}
+.meny-pop .h{font:500 10px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);padding:8px 10px 4px}
+.meny-pop button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:9px;cursor:pointer}
+.meny-pop button:hover,.meny-pop button:focus-visible{background:var(--sand);outline:none}
+.meny-pop button span:last-child{color:var(--mist);font-size:12.5px}
+
+.tråd{flex:1;min-height:0;overflow-y:auto;padding:22px 28px 0;scroll-behavior:smooth}
+.tråd-inn{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;font-size:13px}
+.banner.vent{background:var(--stale-tint);color:var(--stale)}
+.banner.lukket{background:var(--online-tint);color:var(--online)}
+.banner button{border:0;background:transparent;font-weight:700;cursor:pointer;color:inherit;text-decoration:underline;text-underline-offset:3px}
+.dag{align-self:center;font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mist)}
+.mld{display:grid;grid-template-columns:36px 1fr;gap:0 12px;align-items:start}
+.mld .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:.02em;margin-top:1px}
+.mld .hode{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--mist);padding:0 2px 5px}
+.mld .hode b{color:var(--ink);font-weight:600;font-size:14px}
+.mld .hode .tid{margin-left:auto;font-size:12.5px;font-variant-numeric:tabular-nums}
+.mld .rolle{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:1px 8px;border-radius:99px}
+.boble{padding:12px 16px;border-radius:12px;background:var(--card);border:1px solid var(--hairline);border-left-width:4px;box-shadow:var(--shadow);overflow-wrap:anywhere}
+.boble p{margin:0}
+.boble p+p{margin-top:8px}
+.boble img{display:block;max-width:100%;border-radius:10px;margin-top:10px;border:1px solid var(--hairline);cursor:zoom-in}
+/* Kunden: kjølig, nøytral. Står i sandfarge med blygrå kant — den skal aldri forveksles med oss. */
+.mld.kunde .av{background:var(--sand);color:var(--graphite);border:1px solid var(--rule)}
+.mld.kunde .rolle{background:var(--sand);color:var(--graphite)}
+.mld.kunde .boble{border-left-color:var(--rule)}
+/* Oss: husets oransje, på både avatar, etikett og kant. */
+.mld.oss .av{background:var(--primary);color:var(--primary-fg)}
+.mld.oss .rolle{background:var(--primary-tint);color:var(--primary-deep)}
+.mld.oss .boble{background:color-mix(in srgb,var(--primary-tint) 55%,var(--card));border-left-color:var(--primary)}
+/* Internt notat: gult og stiplet — ser annerledes ut enn begge. */
+.mld.notat .av{background:var(--notat);color:var(--stale);border:1px dashed var(--notat-kant)}
+.mld.notat .rolle{background:var(--stale-tint);color:var(--stale)}
+.mld.notat .boble{background:var(--notat);border:1px dashed var(--notat-kant);border-left:4px dashed var(--stale);box-shadow:none}
+.ny-inn{animation:inn .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes inn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ny-inn{animation:none}.tråd{scroll-behavior:auto}}
+
+/* Skriveflate */
+/* Rett under siste melding. Blir samtalen lengre enn skjermen, fester den seg nederst. */
+.skriv{position:sticky;bottom:0;margin-top:6px;padding:14px 0 22px;background:linear-gradient(to bottom,transparent,var(--paper) 18px)}
+.skriv-inn{background:var(--card);border:1px solid var(--hairline);border-radius:20px;box-shadow:var(--lift);transition:background .2s,border-color .2s}
+.skriv.notat .skriv-inn{background:var(--notat);border-color:var(--notat-kant)}
+.skrivtopp{display:flex;align-items:center;gap:10px;padding:10px 12px 0 14px;flex-wrap:wrap}
+.modus{display:inline-flex;background:var(--sand);border-radius:99px;padding:3px}
+.skriv.notat .modus{background:color-mix(in srgb,var(--notat-kant) 45%,transparent)}
+.modus button{border:0;background:transparent;padding:4px 12px;border-radius:99px;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--graphite)}
+.modus button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.til{color:var(--mist);font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.til.lås{color:var(--stale);font-weight:600}
+.felt{min-height:84px;max-height:260px;overflow-y:auto;padding:12px 16px;outline:none;overflow-wrap:anywhere}
+.felt:empty::before{content:attr(data-tom);color:var(--mist);pointer-events:none}
+.felt img{display:block;max-width:240px;max-height:170px;border-radius:10px;margin:8px 0;border:1px solid var(--hairline)}
+.skrivbunn{display:flex;align-items:center;gap:8px;padding:6px 10px 10px 12px}
+.ikon{border:0;background:transparent;width:34px;height:34px;border-radius:50%;cursor:pointer;color:var(--graphite);display:grid;place-items:center}
+.ikon:hover{background:var(--sand);color:var(--ink)}
+.hint{color:var(--mist);font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dropp{position:absolute;inset:0;border:2px dashed var(--primary);border-radius:20px;background:color-mix(in srgb,var(--primary-tint) 85%,transparent);display:none;place-items:center;font-weight:600;color:var(--primary-deep);z-index:5}
+.skriv-inn{position:relative}
+.skriv-inn.over .dropp{display:grid}
+
+/* Hilsen og tallstripe — samme språk som CRM-ets forside: datolinje i mono, serifftall, tynne skillelinjer. */
+.hero{flex:none;display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:8px 40px;align-items:end;padding:18px 28px 16px;border-bottom:1px solid var(--hairline)}
+.hero .dato{font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--primary-deep);margin-bottom:6px}
+.hero h1{margin:0;font:400 38px/1.05 "Instrument Serif",Georgia,serif;letter-spacing:-.01em;text-wrap:balance}
+.hero .under{color:var(--graphite);margin-top:8px;font-size:14.5px}
+.tall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-width:0}
+.tall button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:0;background:transparent;padding:2px 20px 2px 22px;border-left:1px solid var(--hairline);cursor:pointer;border-radius:0;color:inherit;min-width:0}
+.tall button:first-child{border-left:0;padding-left:0}
+.tall button .e{font:500 10px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--mist);white-space:nowrap}
+.tall button .n{font:400 40px/1 "Instrument Serif",Georgia,serif;font-variant-numeric:tabular-nums;color:var(--ink);margin-top:8px}
+.tall button.varsel .n{color:var(--primary-deep)}
+.tall button.farlig .n{color:var(--danger)}
+.tall button .u{font-size:12px;color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tall button:hover .e{color:var(--ink)}
+.tall button:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:6px}
+.tall button[aria-pressed="true"] .e{color:var(--primary-deep)}
+.tall button[aria-pressed="true"] .e::after{content:" ·  valgt";letter-spacing:.08em}
+.tall button[aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--primary)}
+@media (max-width:1100px){.hero{grid-template-columns:1fr;gap:16px}.hero h1{font-size:32px}}
+@media (max-width:860px){.hero{padding:12px 16px}.hero h1{font-size:26px}.hero .under{display:none}
+  .app.sak-åpen .hero{display:none}
+  .tall button{padding:2px 8px 2px 12px}.tall button .n{font-size:30px;margin-top:4px}.tall button .e{font-size:9px;letter-spacing:.07em;white-space:normal}.tall button .u{display:none}}
+/* Cc */
+.ccrad{display:flex;align-items:center;gap:8px;padding:6px 14px 0;flex-wrap:wrap;font-size:12.5px;color:var(--mist)}
+.ccrad[hidden]{display:none}
+.ccrad .l{font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase}
+.cc-chip{display:inline-flex;align-items:center;gap:6px;background:var(--sand);color:var(--graphite);border-radius:99px;padding:2px 4px 2px 10px;font-weight:500}
+.cc-chip button{border:0;background:transparent;width:18px;height:18px;border-radius:50%;cursor:pointer;color:var(--mist);line-height:1}
+.cc-chip button:hover{background:var(--rule);color:var(--ink)}
+.cc-inn{border:0;background:transparent;font:inherit;color:var(--ink);min-width:170px;flex:1;outline:none;padding:3px 0}
+.cc-inn::placeholder{color:var(--mist)}
+.cc-vis{font-size:12.5px;color:var(--mist);padding:0 2px 4px}
+/* Ny sak */
+.listetopp .rad1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ny-knapp{padding:6px 14px 6px 11px;display:inline-flex;gap:6px;align-items:center}
+.ark-bak{position:fixed;inset:0;background:rgb(23 26 31/.45);display:none;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;z-index:40;overflow-y:auto}
+.ark-bak.på{display:flex}
+.ark{width:min(680px,100%);background:var(--card);border:1px solid var(--hairline);border-radius:20px;box-shadow:var(--lift);display:flex;flex-direction:column}
+.ark-topp{display:flex;justify-content:space-between;align-items:center;padding:18px 22px 6px}
+.ark-topp h3{margin:0;font:400 28px/1.1 "Instrument Serif",Georgia,serif}
+.ark-rader{padding:6px 22px 4px;display:flex;flex-direction:column;gap:12px}
+.fl{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fl>span{font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.11em;text-transform:uppercase;color:var(--mist)}
+.fl input,.fl select{font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--hairline);border-radius:10px;padding:9px 12px;width:100%}
+.fl input:focus,.fl select:focus{outline:2px solid var(--primary);outline-offset:1px;border-color:transparent}
+.to-kol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:620px){.to-kol{grid-template-columns:1fr}}
+.ark .felt{background:var(--raised);border:1px solid var(--hairline);border-radius:12px;min-height:130px}
+.ark-bunn{display:flex;gap:8px;align-items:center;padding:12px 18px 18px 22px}
+.ark-bunn .hint{flex:1}
+.kanal{display:inline-flex;background:var(--sand);border-radius:99px;padding:3px;align-self:flex-start}
+.kanal button{border:0;background:transparent;padding:5px 14px;border-radius:99px;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--graphite)}
+.kanal button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.mld .ccvis{font-size:12.5px;color:var(--mist);padding:0 2px 5px;margin-top:-3px}
+/* Eier */
+.eier-b{display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 5px}
+.mini-av{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;background:var(--primary);color:var(--primary-fg);flex:none}
+.mini-av.andre{background:var(--ink);color:var(--paper)}
+.mini-av.ingen{background:transparent;border:1.5px dashed var(--rule);color:var(--mist)}
+.meny-pop .sep{height:1px;background:var(--hairline);margin:5px 4px}
+.meny-pop button.ta{background:var(--primary-tint);color:var(--primary-deep);font-weight:700}
+.meny-pop button.ta:hover{background:color-mix(in srgb,var(--primary-tint) 70%,var(--primary))}
+.meny-pop button .navn{display:flex;gap:9px;align-items:center}
+.meny-pop button .nå{color:var(--online);font-size:12px;font-weight:700}
+.hend{align-self:center;display:flex;gap:8px;align-items:center;color:var(--mist);font-size:12.5px;padding:2px 12px;border-radius:99px;background:var(--sand)}
+.hend b{color:var(--graphite);font-weight:600}
+.visning{display:flex;gap:18px;border-bottom:1px solid var(--hairline);margin:0 2px}
+.visning button{border:0;background:transparent;padding:2px 0 9px;cursor:pointer;color:var(--mist);font-weight:600;font-size:13px;position:relative;display:flex;gap:6px;align-items:baseline}
+.visning button .t{font-weight:500;font-size:12px;font-variant-numeric:tabular-nums}
+.visning button[aria-pressed="true"]{color:var(--ink)}
+.visning button[aria-pressed="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--primary)}
+.visning button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+.rad .l1 .mini-av{width:20px;height:20px;font-size:9px}
+.chip.ingen{background:var(--primary-tint);color:var(--primary-deep)}
+/* Toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--paper);padding:10px 12px 10px 18px;border-radius:99px;box-shadow:var(--lift);display:flex;gap:14px;align-items:center;font-weight:500;transition:.25s cubic-bezier(.2,.8,.2,1);pointer-events:none;z-index:50;max-width:calc(100% - 32px)}
+.toast.på{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{border:0;background:transparent;color:var(--primary);font-weight:700;cursor:pointer;padding:2px 6px}
+:root[data-theme="dark"] .toast button{color:var(--primary-deep)}
+.lysboks{position:fixed;inset:0;background:rgb(0 0 0/.72);display:none;place-items:center;z-index:60;padding:24px;cursor:zoom-out}
+.lysboks.på{display:grid}
+.lysboks img{max-width:min(960px,100%);max-height:100%;border-radius:12px;box-shadow:var(--lift)}
+
+/* Telefon: liste ELLER sak */
+@media (max-width:860px){
+  .topp{gap:12px;padding:0 14px}.mock{display:none}
+  .flate{grid-template-columns:1fr}
+  .liste{border-right:0}
+  .sak{display:none}
+  .app.sak-åpen .liste{display:none}
+  .app.sak-åpen .sak{display:flex}
+  .tilbake{display:block}
+  .saktopp{padding:14px 16px;flex-wrap:wrap}
+  .saktopp h2{font-size:20px}
+  .handlinger{width:100%}
+  .tråd{padding:16px 16px 0}.skriv{padding:10px 0 14px}
+  .mld{grid-template-columns:30px 1fr;gap:0 9px}.mld .av{width:30px;height:30px;font-size:12px}
+}
+
+/* ── Tillegg for ekte data ─────────────────────────────────────────── */
+.sitat-knapp{border:0;background:var(--sand);color:var(--mist);border-radius:6px;padding:0 8px;cursor:pointer;font-weight:700;letter-spacing:.1em;margin-top:8px}
+.sitat-knapp:hover{color:var(--ink)}
+.sitat{margin-top:8px;padding-left:12px;border-left:3px solid var(--rule);color:var(--graphite)}
+.sitat[hidden]{display:none}
+.boble blockquote{margin:8px 0;padding-left:12px;border-left:3px solid var(--rule);color:var(--graphite)}
+.boble table{border-collapse:collapse;max-width:100%;display:block;overflow-x:auto}
+.boble td,.boble th{border:1px solid var(--hairline);padding:4px 8px}
+.boble a{color:var(--primary-deep)}
+.boble pre{white-space:pre-wrap;background:var(--sand);padding:8px 10px;border-radius:8px}
+.vedlegg{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.vedlegg a.fil{display:inline-flex;gap:8px;align-items:center;padding:5px 12px;border-radius:99px;background:var(--sand);color:var(--ink);text-decoration:none;font-size:12.5px;font-weight:500}
+.vedlegg a.fil:hover{background:var(--rule)}
+.vedlegg .st{color:var(--mist)}
+.les-merknad{max-width:760px;margin:6px auto 22px;padding:12px 16px;border:1px dashed var(--rule);border-radius:14px;color:var(--graphite);font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.les-merknad a{white-space:nowrap}
+.feil{margin:24px;padding:16px 18px;border-radius:14px;background:var(--danger-tint);color:var(--danger);max-width:640px}
+.feil b{display:block;margin-bottom:4px}
+.laster{padding:40px 24px;color:var(--mist);text-align:center}
+a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
+.hend .sys{color:var(--mist)}
