@@ -13,7 +13,7 @@
 import { hent, IkkeInnlogget } from "./api.js";
 import {
   STATUSNAVN_APNE, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
-  kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst,
+  kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
 } from "./modell.js";
 import { rens } from "./rens.js";
 import { monter, planleggSending } from "./skriv.js";
@@ -168,7 +168,7 @@ function tegnArtikler(sak, liste) {
     return `<div class="hode"><b>${esc(a.navn)}</b><span class="rolle">${ROLLE[a.slag]}</span>${under}<span class="tid">${esc(langTid(a.tid))}</span></div>`;
   };
   return liste.map((a, i) => a.slag === "system"
-    ? `<div class="hend"><span class="sys">${esc(a.emne || "Automatisk melding")}</span> · ${esc(langTid(a.tid))}</div>`
+    ? `<div class="hend"><span class="sys">Automatisk svar til ${esc(navnFraFra(a.til) || a.til || "kunden")}${a.emne ? ": «" + esc(a.emne) + "»" : ""}</span><span class="sys">· ${esc(langTid(a.tid))}</span></div>`
     : `<article class="mld ${a.slag}">
         <div class="av" aria-hidden="true">${esc(initialer(a.navn))}</div>
         <div>${hode(a)}

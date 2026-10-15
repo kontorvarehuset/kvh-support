@@ -158,6 +158,7 @@ export function byggArtikkel(a, brukere) {
     emne: a.subject || "",
     html: a.content_type === "text/html",
     tekst: a.body || "",
+    til: a.to || "",
     cc: (a.cc || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
     kanal: a.type || "",
     vedlegg: (a.attachments || []).map((v) => ({
