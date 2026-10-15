@@ -491,9 +491,10 @@ async function endreStatus(sak, kropp, tekst) {
 function velgNeste(forbiId) {
   const l = synlige().filter((x) => x.id !== forbiId);
   S.valgt = l.length ? l[0].id : null;
-  if (!l.length) $("#app").classList.remove("sak-åpen");
+  /* Etter lukking eller på vent går man tilbake til lista i en smal visning (der er saken man stod på borte). */
+  $("#app").classList.remove("sak-åpen");
   helhet();
-  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
+  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
 }
 
 /* Eier endres med én PUT på saken, i den innloggedes navn. 1 er Zammads «ingen eier». */
@@ -625,7 +626,7 @@ async function kjorSok() {
   const l = synlige();
   if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
   helhet();
-  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
+  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
 }
 
 function nullstillSok() {
@@ -640,9 +641,15 @@ function helhet() { tegnBruker(); tegnHero(); tegnFaner(); tegnOmfang(); tegnLis
 
 /* ── Handlinger ──────────────────────────────────────────────────────── */
 
-async function velgSak(id) {
+/*
+ * `automatisk`: siden valgte saken selv (oppstart, ny fane, søk, etter lukking). Da vises saken i den store
+ * visningen med lista ved siden av, men i en SMAL visning (som support-vinduet i RMM-et), der bare lista ELLER
+ * saken vises, skal lista bli stående. Før åpnet siden alltid den første saken, så man aldri så lista først.
+ * Trykker man selv på en sak, åpnes den som før.
+ */
+async function velgSak(id, automatisk = false) {
   S.valgt = id; S.feil = null;
-  $("#app").classList.add("sak-åpen");
+  if (!automatisk) $("#app").classList.add("sak-åpen");
   tegnListe(); tegnSak();
   try {
     await lastArtikler(id);
@@ -664,7 +671,7 @@ async function byttFane(f) {
   if (!lista.some((x) => x.id === S.valgt)) S.valgt = lista.length ? lista[0].id : null;
   $("#app").classList.remove("sak-åpen");
   helhet();
-  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
+  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
 }
 
 function visInnlogging() {
@@ -729,7 +736,7 @@ function koble() {
     const l = synlige(); S.valgt = l.length ? l[0].id : null;
     $("#app").classList.remove("sak-åpen");
     helhet();
-    if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
+    if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt, true);
   });
   $("#sak").addEventListener("click", (e) => {
     const vid = e.target.closest("[data-vid]");
@@ -822,7 +829,7 @@ export async function start() {
   const lista = synlige();
   S.valgt = lista.length ? lista[0].id : null;
   helhet();
-  if (S.valgt) velgSak(S.valgt);
+  if (S.valgt) velgSak(S.valgt, true);
   setInterval(oppfrisk, 60_000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) oppfrisk(); });
 }
