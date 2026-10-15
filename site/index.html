@@ -7,8 +7,10 @@
 <title>KVH Support</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="app.css">
-<script type="module" src="js/main.js"></script>
+<!-- ABSOLUTE adresser, ikke relative: går man til /kvhui uten skråstrek og NetBird
+     fjerner prefikset, ville «app.css» blitt hentet fra roten og truffet Zammad. -->
+<link rel="stylesheet" href="/kvhui/app.css">
+<script type="module" src="/kvhui/js/main.js"></script>
 </head>
 <body>
 <div class="app" id="app">

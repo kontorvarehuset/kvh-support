@@ -8,3 +8,9 @@ Eget, enkelt grensesnitt for support, som ligger under `support.kvh.no/kvhui/` v
 
 Utrulling: `docker compose pull && docker compose up -d` i `/opt/docker-kvh-support`.
 NetBird-ruten `/kvhui` på tjenesten for `support.kvh.no` peker på `100.76.1.117:3002`.
+
+## NetBird
+
+Tjenesten `support.kvh.no` har to mål: `/` går til Zammads nginx (`:8080`), og `/kvhui` går til denne
+containeren (`100.76.1.117:3002`). «Preserve Full Path» kan stå av eller på: nginx her svarer på begge
+(`/kvhui/…` og `/…`), og siden bruker absolutte adresser som begynner på `/kvhui/`.
