@@ -476,3 +476,6 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   .tall button .n{margin-top:0;padding-top:6px}
   .tall button[aria-pressed="true"] .e::after{content:none}
 }
+
+.versjon{flex:none;padding:4px 14px 8px;color:var(--mist);font:500 10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+.versjon:empty{display:none}

@@ -40,12 +40,12 @@ Redigér aldri `src/` på serveren. Endringer lages andre steder, pushes, og hen
 cd /opt/docker-kvh-support/src
 git status --short                      # skal være tom; ellers stopp og finn ut hvorfor
 git pull --ff-only                      # feiler heller enn å lage en uventet sammenslåing
-docker build -t kvh-support:local .
+docker build -t kvh-support:local --build-arg GIT_SHA=$(git rev-parse --short HEAD) .
 cd .. && docker compose up -d
 curl -s http://127.0.0.1:3002/helse     # skal skrive «ok»
 ```
 
-Last siden på nytt med **Ctrl+Shift+R** etterpå, ellers kan nettleseren vise gammel JavaScript.
+Versjonen som kjører står nederst i saklista («Versjon c6c4186»); sammenlikn med siste commit. Last siden på nytt med **Ctrl+Shift+R** etterpå, ellers kan nettleseren vise gammel JavaScript.
 
 ### Gå tilbake til forrige versjon
 

@@ -820,8 +820,18 @@ async function oppfrisk() {
   }
 }
 
+/* Hvilken versjon som kjører, fra bygget. Står nederst i lista: «ingen endring» er umulig å sjekke uten. */
+async function visVersjon() {
+  try {
+    const r = await fetch("/kvhui/versjon.txt", { cache: "no-store" });
+    const t = r.ok ? (await r.text()).trim() : "";
+    if (/^[0-9a-f]{4,40}$/i.test(t)) $("#versjon").textContent = `Versjon ${t}`;
+  } catch { /* uten versjonslinje */ }
+}
+
 export async function start() {
   koble();
+  visVersjon();
   $("#rader").innerHTML = `<div class="laster">Henter saker …</div>`;
   try {
     const sess = await hent("/signshow");
