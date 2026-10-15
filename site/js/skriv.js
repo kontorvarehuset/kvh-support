@@ -134,7 +134,8 @@ export function monter(rot, ctx) {
   /* Signaturen hentes fra Zammad når skriveflata åpnes. Mangler den, vises ingenting. */
   let sigHtml = "";
   const sigPa = $("#sig-pa");
-  try { sigPa.checked = localStorage.getItem("kvhui-signatur") !== "av"; } catch { sigPa.checked = true; }
+  /* Signaturen er alltid på (valget er skjult, og et gammelt lagret «av» ignoreres): et svar uten signatur er en feil. */
+  sigPa.checked = true;
   const sigRad = $("#sig-rad");
   $("#sig-apne").addEventListener("click", (e) => {
     e.preventDefault();

@@ -516,3 +516,6 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 
 /* Zammad-knappen er bare pilen på smale skjermer, så den får plass på samme rad som de andre og ikke havner alene på en linje. */
 @media (max-width:860px){.handlinger .knapp .zt{display:none}.handlinger a.knapp{padding-left:12px;padding-right:12px}}
+
+/* Signaturvalget er skjult overalt: signaturen legges alltid til på svar til kunde (og i Ny sak og Videresend). */
+.sig{display:none!important}
