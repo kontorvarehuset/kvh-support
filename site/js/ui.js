@@ -430,7 +430,7 @@ function tegnSakTopp(sak) {
         <h2>${esc(sak.emne)}</h2>
         <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
       </div>
-      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status === "lukket" ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>' : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad">Zammad ↗</a></div>`;
+      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status === "lukket" ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>' : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad" aria-label="Åpne saken i Zammad"><span class="zt">Zammad </span>↗</a></div>`;
 }
 
 function tegnBanner(sak) {

@@ -513,3 +513,6 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 @media (max-width:860px){
   html:not([data-innbygd]) .app.sak-åpen{position:fixed;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100%)}
 }
+
+/* Zammad-knappen er bare pilen på smale skjermer, så den får plass på samme rad som de andre og ikke havner alene på en linje. */
+@media (max-width:860px){.handlinger .knapp .zt{display:none}.handlinger a.knapp{padding-left:12px;padding-right:12px}}
