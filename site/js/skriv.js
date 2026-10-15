@@ -15,7 +15,7 @@
  *    nekter å sende. Settes til null når Frank har godkjent at det virker.
  */
 
-import { post } from "./api.js";
+import { post, put } from "./api.js";
 
 /* Under prøving kan det bare sendes på denne saken (saksnummer, ikke id). */
 export const SPERRE_TIL = "13753";
@@ -76,6 +76,7 @@ export function monter(rot, ctx) {
       </button>
       <input type="file" id="fil" accept="image/*" multiple hidden>
       <span class="hint" id="hint"></span>
+      <button type="button" class="knapp" id="send-lukk" title="Send svaret og lukk saken">Send og lukk</button>
       <button type="button" class="knapp oransje" id="send"></button>
     </div></div></div>
     ${kunSperret ? `<div class="les-merknad" style="margin-top:0"><span><b>Prøvemodus:</b> sending er sperret på alle saker unntatt <b>#${esc(SPERRE_TIL)}</b>.</span></div>` : ""}`;
@@ -92,6 +93,7 @@ export function monter(rot, ctx) {
     felt.dataset.tom = notat ? "Skriv et notat til dere selv …" : "Skriv svar …";
     $("#send").textContent = notat ? "Lagre notat" : "Send svar";
     $("#ccrad").hidden = notat;
+    $("#send-lukk").hidden = notat;
     $("#hint").textContent = "Lim inn eller dra skjermbilder rett i meldingen · ⌘↵ sender";
     rot.querySelectorAll(".modus button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === u.modus)));
     $("#cc-chips").innerHTML = u.cc.map((e, i) => `<span class="cc-chip">${esc(e)}<button type="button" data-cc="${i}" aria-label="Fjern ${esc(e)}">×</button></span>`).join(" ");
@@ -149,7 +151,7 @@ export function monter(rot, ctx) {
   $("#cc-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-cc]"); if (b) { u.cc.splice(Number(b.dataset.cc), 1); oppdater(); } });
 
   /* Sending. */
-  const send = () => {
+  const send = (lukkEtterpaa = false) => {
     if (kunSperret) return ctx.toast(`Sperret i prøvemodus: kan bare sende på #${SPERRE_TIL}.`);
     if (u.modus === "svar" && !leggTilCc()) return;
     const { html, tomt } = tilHtml(felt);
@@ -171,11 +173,14 @@ export function monter(rot, ctx) {
     felt.innerHTML = ""; u.html = ""; u.cc = []; oppdater();
     ctx.planlegg({
       kropp, notat, saksId: sak.id,
-      beskrivelse: notat ? "Notat lagres" : `Svar sendes til ${sak.epost}${brukt.cc.length ? " og " + brukt.cc.length + " i kopi" : ""}`,
+      /* Etter svaret lukkes saken, i samme jobb: ett Angre gjelder begge deler. */
+      etterpa: lukkEtterpaa && !notat ? { state_id: 4 } : null,
+      beskrivelse: notat ? "Notat lagres" : `Svar sendes${lukkEtterpaa ? " og saken lukkes" : ""} til ${sak.epost}${brukt.cc.length ? " og " + brukt.cc.length + " i kopi" : ""}`,
       gjenopprett: () => { u.html = brukt.html; u.modus = brukt.modus; u.cc = brukt.cc; if (rot.contains(felt)) { felt.innerHTML = u.html; oppdater(); } },
     });
   };
-  $("#send").addEventListener("click", send);
+  $("#send").addEventListener("click", () => send(false));
+  $("#send-lukk").addEventListener("click", () => send(true));
   felt.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); send(); } });
 }
 
@@ -192,7 +197,8 @@ export function planleggSending(jobb, { toast, ferdig, feilet }) {
     clearInterval(j.teller);
     try {
       await post("/ticket_articles", j.kropp);
-      toast(j.notat ? "Notat lagret" : "Svar sendt");
+      if (j.etterpa) await put(`/tickets/${j.saksId}`, j.etterpa);
+      toast(j.notat ? "Notat lagret" : j.etterpa ? "Svar sendt og saken lukket" : "Svar sendt");
       ferdig(j);
     } catch (e) {
       j.gjenopprett();

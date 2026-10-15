@@ -274,7 +274,8 @@ async function etterSending(j) {
   } catch (e) { toast("Sendt, men kunne ikke oppdatere visningen: " + e.message); }
   tegnHero(); tegnFaner(); tegnListe();
   const sak = finn(j.saksId);
-  if (S.valgt === j.saksId && sak) { tegnArtikkelRot(sak); const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight; }
+  if (S.valgt === j.saksId && sak && j.etterpa && !synlige().some((x) => x.id === j.saksId)) { velgNeste(j.saksId); return; }
+  if (S.valgt === j.saksId && sak) { tegnBanner(sak); tegnSakTopp(sak); tegnArtikkelRot(sak); const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight; }
 }
 
 function feilVedSending(j, e) {
@@ -306,7 +307,69 @@ function tegnSakTopp(sak) {
         <h2>${esc(sak.emne)}</h2>
         <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
       </div>
-      <div class="handlinger">${eierKnapp(sak)}<a class="knapp primær" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener">Åpne i Zammad ↗</a></div>`;
+      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status !== "lukket" ? '<button class="knapp primær" data-a="lukk">Lukk saken</button>' : ""}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad">Zammad ↗</a></div>`;
+}
+
+function tegnBanner(sak) {
+  const rot = $("#sak-banner"); if (!rot) return;
+  rot.innerHTML = sak.status === "vent"
+    ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span><button data-a="aapne">Åpne nå</button></div>`
+    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket.</span><button data-a="aapne">Gjenåpne</button></div>` : "";
+}
+
+/* Tidspunkter for «på vent». Alle kl. 08:00 lokal tid (Oslo); mandag vises ikke når i morgen er mandag. */
+function ventValg() {
+  const kl8 = (dager) => { const d = new Date(); d.setDate(d.getDate() + dager); d.setHours(8, 0, 0, 0); return d; };
+  const val = [{ navn: "I morgen", d: kl8(1), stat: 3 }];
+  const tilMandag = ((8 - new Date().getDay()) % 7) || 7;
+  if (tilMandag > 1) val.push({ navn: "Mandag", d: kl8(tilMandag), stat: 3 });
+  val.push({ navn: "Om en uke", d: kl8(7), stat: 3 });
+  val.push({ navn: "Venter på kunde", d: kl8(7), stat: 7, merke: "tas opp om 7 dager" });
+  return val;
+}
+
+function ventKnapp(sak) {
+  if (sak.status === "lukket") return "";
+  const v = ventValg();
+  return `<button class="knapp" id="vent-b" aria-haspopup="menu" aria-expanded="false">På vent ▾</button>
+    <div class="meny-pop" id="vent-pop" role="menu" hidden>
+      <div class="h">Sett på vent til</div>
+      ${v.map((x, i) => `<button role="menuitem" data-v="${i}"><span>${esc(x.navn)}</span><span>${x.merke ? esc(x.merke) : esc(ventTekst(x.d.getTime()).replace(/^\S+\s/, ""))}</span></button>`).join("")}
+    </div>`;
+}
+
+/* Statusendring: én PUT på saken, i den innloggedes navn. Angre setter forrige status og frist tilbake. */
+async function endreStatus(sak, kropp, tekst) {
+  if (SPERRE_TIL && String(sak.nummer) !== SPERRE_TIL) return toast(`Sperret i prøvemodus: kan bare endres på #${SPERRE_TIL}.`);
+  const forrige = { state_id: sak.stateId, pending_time: sak.pendingRaw };
+  try {
+    await put(`/tickets/${sak.id}`, kropp);
+  } catch (e) {
+    if (e instanceof IkkeInnlogget) return visInnlogging();
+    return toast("Kunne ikke endre saken: " + e.message);
+  }
+  await etterEndring(sak.id);
+  const fortsatt = finn(sak.id);
+  /* Står man i en liste saken ikke lenger hører hjemme i, går man videre til neste sak i stedet for å bli stående på en tom. */
+  if (fortsatt && !synlige().some((x) => x.id === sak.id)) velgNeste(sak.id);
+  else if (fortsatt) { tegnBanner(fortsatt); tegnSakTopp(fortsatt); monterSkriveflate(fortsatt); }
+  toast(tekst, async () => {
+    try {
+      await put(`/tickets/${sak.id}`, forrige);
+      await etterEndring(sak.id);
+      S.fane = finn(sak.id)?.status === "lukket" ? "lukket" : finn(sak.id)?.status || S.fane;
+      S.valgt = sak.id; helhet();
+      toast("Satt tilbake.");
+    } catch (e) { toast("Kunne ikke angre: " + e.message); }
+  });
+}
+
+function velgNeste(forbiId) {
+  const l = synlige().filter((x) => x.id !== forbiId);
+  S.valgt = l.length ? l[0].id : null;
+  if (!l.length) $("#app").classList.remove("sak-åpen");
+  helhet();
+  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
 }
 
 /* Eier endres med én PUT på saken, i den innloggedes navn. 1 er Zammads «ingen eier». */
@@ -336,23 +399,21 @@ async function etterEndring(id) {
   try { await lastSaker(); } catch (e) { toast("Endret, men kunne ikke oppdatere lista: " + e.message); }
   tegnHero(); tegnFaner(); tegnListe();
   const sak = finn(id);
-  if (sak && S.valgt === id) tegnSakTopp(sak);
+  if (sak && S.valgt === id) { tegnSakTopp(sak); tegnBanner(sak); }
 }
 
 function tegnSak() {
   const sak = S.valgt ? finn(S.valgt) : null;
   if (!sak) { $("#sak").innerHTML = `<div class="tomt" style="margin:auto"><div class="w">Velg en sak</div>Saken åpnes her.</div>`; return; }
-  const banner = sak.status === "vent"
-    ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span></div>`
-    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Åpne den i Zammad for å svare.</span></div>` : "";
   $("#sak").innerHTML = `
     <div class="saktopp" id="sak-topp"></div>
     <div class="tråd" id="tråd"><div class="tråd-inn">
-      ${banner}
+      <div id="sak-banner"></div>
       <div id="art-rot"></div>
       <div id="skriv-rot"></div>
     </div></div>`;
   tegnSakTopp(sak);
+  tegnBanner(sak);
   tegnArtikkelRot(sak);
   monterSkriveflate(sak);
   const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight;
@@ -429,17 +490,31 @@ function koble() {
   });
   $("#sak").addEventListener("click", (e) => {
     if (e.target.closest("[data-a='tilbake']")) $("#app").classList.remove("sak-åpen");
+    const vb = e.target.closest("#vent-b");
+    if (vb) { const p = $("#vent-pop"); p.hidden = !p.hidden; vb.setAttribute("aria-expanded", String(!p.hidden)); const q = $("#eier-pop"); if (q) q.hidden = true; return; }
+    const vv = e.target.closest("[data-v]");
+    if (vv && S.valgt) {
+      const sak = finn(S.valgt), val = ventValg()[Number(vv.dataset.v)]; const p = $("#vent-pop"); if (p) p.hidden = true;
+      if (sak && val) endreStatus(sak, { state_id: val.stat, pending_time: val.d.toISOString() }, val.stat === 7 ? "Venter på kunde, tas opp igjen " + ventTekst(val.d.getTime()) : "På vent til " + ventTekst(val.d.getTime()));
+      return;
+    }
+    const ha = e.target.closest("[data-a]");
+    if (ha && S.valgt) {
+      const sak = finn(S.valgt);
+      if (sak && ha.dataset.a === "lukk") { endreStatus(sak, { state_id: 4 }, "Saken er lukket"); return; }
+      if (sak && ha.dataset.a === "aapne") { endreStatus(sak, { state_id: 2, pending_time: null }, "Saken er åpen igjen"); return; }
+    }
     const eb = e.target.closest("#eier-b");
-    if (eb) { const p = $("#eier-pop"); p.hidden = !p.hidden; eb.setAttribute("aria-expanded", String(!p.hidden)); return; }
+    if (eb) { const p = $("#eier-pop"); p.hidden = !p.hidden; eb.setAttribute("aria-expanded", String(!p.hidden)); const q = $("#vent-pop"); if (q) q.hidden = true; return; }
     const ev = e.target.closest("[data-e]");
     if (ev && S.valgt) { const sak = finn(S.valgt); const p = $("#eier-pop"); if (p) p.hidden = true; if (sak) settEier(sak, Number(ev.dataset.e)); }
   });
-  document.addEventListener("click", (e) => { if (!e.target.closest(".handlinger")) { const p = $("#eier-pop"); if (p) p.hidden = true; } });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".handlinger")) document.querySelectorAll(".meny-pop").forEach((p) => { p.hidden = true; }); });
   document.addEventListener("click", (e) => {
     if (e.target.matches(".boble img")) { $("#lys-bilde").src = e.target.src; $("#lys").classList.add("på"); }
   });
   $("#lys").addEventListener("click", () => $("#lys").classList.remove("på"));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#lys").classList.remove("på"); const p = $("#eier-pop"); if (p) p.hidden = true; } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#lys").classList.remove("på"); document.querySelectorAll(".meny-pop").forEach((p) => { p.hidden = true; }); } });
   $("#tema").addEventListener("click", () => {
     const r = document.documentElement;
     const mork = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;

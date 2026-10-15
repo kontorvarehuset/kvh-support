@@ -78,6 +78,8 @@ export function byggSaker(res, naa = Date.now()) {
       fra: navnPaa(kunde),
       epost: kunde?.email || "",
       status,
+      stateId: t.state_id,
+      pendingRaw: t.pending_time || null,
       eierId: eier ? eier.id : null,
       eier: eier ? navnPaa(eier) : null,
       venterPaaOss,
