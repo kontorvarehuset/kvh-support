@@ -324,3 +324,31 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .sig-visning{margin-top:6px;font-size:12.5px;color:var(--mist);overflow-wrap:anywhere}
 .sig-visning p,.sig-visning div{margin:0}
 .ark .sig{margin:0}
+
+/* ── Plass: skriveflata skal alltid vises hel, også på lave skjermer ───────────────────────────
+   Med signaturen ble den høyere enn det som var igjen av vinduet, og sendeknappene havnet utenfor.
+   1) Lavere felt. 2) Signaturen er én linje som kan åpnes. 3) Boksen får aldri bli høyere enn skjermen
+   tillater, og ruller heller innvendig. 4) Hilsenen og tallene i toppen krymper på lave skjermer. */
+.felt{min-height:56px;max-height:22vh}
+.skriv{padding:8px 0 10px}
+.skriv-inn{max-height:min(68vh,560px);overflow-y:auto}
+.sig{margin:0 14px 4px;padding:6px 12px}
+.sig-visning{max-height:1.55em;overflow:hidden;cursor:pointer;white-space:nowrap;text-overflow:ellipsis}
+.sig-visning br{display:none}
+.sig.apen .sig-visning{max-height:none;white-space:normal;cursor:default}
+.sig.apen .sig-visning br{display:inline}
+.sig-valg .apne-sig{margin-left:auto;color:var(--primary-deep);font-weight:700;cursor:pointer;background:none;border:0;font:inherit;font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+@media (max-height:820px){
+  .hero{padding:10px 28px 8px;gap:4px 28px}
+  .hero h1{font-size:28px}
+  .hero .under{display:none}
+  .hero .dato{margin-bottom:2px}
+  .tall button .n{font-size:30px;margin-top:4px}
+  .tall button{gap:3px}
+  .saktopp{padding:10px 28px 8px}
+  .saktopp h2{font-size:20px}
+  .tråd{padding-top:14px}
+}
+@media (max-height:640px){
+  .hero{display:none}
+}

@@ -101,7 +101,7 @@ export function monter(rot, ctx) {
     <div class="ccrad" id="ccrad"><span class="l">Cc</span><span id="cc-chips"></span><input class="cc-inn" id="cc-inn" type="email" placeholder="Legg til e-postadresse …" aria-label="Cc"></div>
     <div class="felt" id="felt" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Melding"></div>
     <div class="sig" id="sig-rad" hidden>
-      <label class="sig-valg"><input type="checkbox" id="sig-pa"> Med signatur</label>
+      <label class="sig-valg"><input type="checkbox" id="sig-pa"> Med signatur <button type="button" class="apne-sig" id="sig-apne">vis</button></label>
       <div class="sig-visning" id="sig-visning"></div>
     </div>
     <div class="skrivbunn">
@@ -123,6 +123,12 @@ export function monter(rot, ctx) {
   let sigHtml = "";
   const sigPa = $("#sig-pa");
   try { sigPa.checked = localStorage.getItem("kvhui-signatur") !== "av"; } catch { sigPa.checked = true; }
+  const sigRad = $("#sig-rad");
+  $("#sig-apne").addEventListener("click", (e) => {
+    e.preventDefault();
+    const apen = sigRad.classList.toggle("apen");
+    e.target.textContent = apen ? "skjul" : "vis";
+  });
   sigPa.addEventListener("change", () => { try { localStorage.setItem("kvhui-signatur", sigPa.checked ? "pa" : "av"); } catch { /* ingen lagring */ } });
   const oppdater = () => {
     const notat = u.modus === "notat";
