@@ -18,5 +18,5 @@ assert.equal(r.bilder, 0, "bare data:-bilder av trygge typer"); assert.equal(r.h
 r = tilHtml(lag("   <br>  "));
 assert.equal(r.tomt, true, "bare luft er tomt");
 r = tilHtml(lag('Tekst med "sitat" og <tegn>'));
-assert.match(r.html, /&quot;sitat&quot;/); assert.equal(SPERRE_TIL, "13753", "prøvesperren står på testsaken");
+assert.match(r.html, /&quot;sitat&quot;/); assert.equal(SPERRE_TIL, null, "prøvesperren er fjernet");
 console.log("skriv: ok");

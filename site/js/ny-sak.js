@@ -4,19 +4,15 @@
  * Zammad lager kunden selv hvis adressen ikke finnes (`customer_id: "guess:adresse"`), og en sak
  * fra «Send e-post» sender e-posten fra supportadressen i den innloggedes navn.
  *
- * ── Sperre i prøvefasen ──────────────────────────────────────────────
- *
- * En ny sak med e-post ut er det eneste i siden som kan skrive til en HELT FREMMED. Derfor nekter
- * den alt annet enn testbrukerens adresse så lenge `SPERRE_NY_EPOST` er satt. Telefonsamtaler
- * sender ingenting, men får samme sperre så testen ikke fyller opp ekte kunder med prøvesaker.
- * Settes til null først når Frank har godkjent at det virker.
+ * Prøvesperren (`SPERRE_NY_EPOST`) er fjernet. Settes den til en adresse, nekter siden alle andre kunder igjen.
  */
 
 import { hent, post, IkkeInnlogget } from "./api.js";
 import { tilHtml, kobleFelt } from "./skriv.js";
 import { navnPaa } from "./modell.js";
 
-export const SPERRE_NY_EPOST = "frank.iversen@gmail.com";
+/* Fjernet 15. okt. 2026 etter at Frank godkjente testen. Settes til en adresse for å begrense «Ny sak» igjen. */
+export const SPERRE_NY_EPOST = null;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const gyldig = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);

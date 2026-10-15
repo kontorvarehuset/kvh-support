@@ -16,5 +16,5 @@ assert.equal("to" in k.article, false, "telefon sender ingenting"); assert.equal
 assert.deepEqual(brukereFraSok([{ id: 1, firstname: "Grete", lastname: "S", email: "g@x.example", organization: "Sylteosen" }, { id: 2, firstname: "Uten", lastname: "Epost" }]),
   [{ id: 1, navn: "Grete S", epost: "g@x.example", org: "Sylteosen" }]);
 const r = brukereFraSok({ record_ids: [9], assets: { User: { 9: { id: 9, firstname: "A", lastname: "B", email: "a@x.example", organization_id: 3 } }, Organization: { 3: { id: 3, name: "Firma" } } } });
-assert.equal(r[0].org, "Firma"); assert.equal(typeof SPERRE_NY_EPOST, "string", "prøvesperren står på");
+assert.equal(r[0].org, "Firma"); assert.equal(SPERRE_NY_EPOST, null, "prøvesperren er fjernet");
 console.log("ny-sak: ok");

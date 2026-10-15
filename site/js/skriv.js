@@ -8,18 +8,18 @@
  *    finnes ingen annen vei til `internal`.
  * 2. Et svar til feil sak. Hver sak har sitt eget utkast, og sendingen bærer
  *    saks-id fra den saken skriveflata ble åpnet på, ikke «den valgte».
- * 3. Et svar som går ut før man ombestemmer seg. Alt som sendes til kunde
- *    ligger ti sekunder med «Angre». Mens det ligger der, advarer nettleseren
- *    hvis man lukker fanen: da ville svaret ellers gå tapt uten at noen skjønte det.
- * 4. Prøvefasen: `SPERRE_TIL` er satt til testsaken, og alle andre saker
- *    nekter å sende. Settes til null når Frank har godkjent at det virker.
+ * 3. Et svar som går ut før man ombestemmer seg. Det finnes ingen ventetid
+ *    (Frank fjernet den), så feil mottaker fanges bare av at den står tydelig
+ *    over feltet. Mens forespørselen er på vei, advarer nettleseren hvis man
+ *    lukker fanen.
+ * 4. Prøvesperren (`SPERRE_TIL`) er fjernet.
  */
 
 import { post, put } from "./api.js";
 
-/* Under prøving kan det bare sendes på denne saken (saksnummer, ikke id). */
-export const SPERRE_TIL = "13753";
-const ANGRE_MS = 10_000;
+/* Prøvesperren er fjernet (15. okt. 2026, etter at Frank godkjente testen). Settes til et saksnummer som
+   tekst for å begrense alt som skrives til én sak igjen. */
+export const SPERRE_TIL = null;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const gyldig = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -214,53 +214,27 @@ export function monter(rot, ctx) {
   felt.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); send(); } });
 }
 
-/* Sendekøen: ti sekunder med «Angre», og advarsel hvis fanen lukkes mens noe ligger der. */
+/*
+ * Sending. Svar går ut med en gang: Frank ba om å fjerne de ti sekundene med «Angre». Det betyr at et svar
+ * til feil kunde ikke kan hentes tilbake, så mottaker og modus står tydelig over feltet. Mens
+ * forespørselen er på vei, advarer nettleseren hvis man lukker fanen.
+ */
 let ventende = null;
 window.addEventListener("beforeunload", (e) => { if (ventende) { e.preventDefault(); e.returnValue = ""; } });
 
-export function planleggSending(jobb, { toast, ferdig, feilet }) {
+export async function planleggSending(jobb, { toast, ferdig, feilet }) {
   if (ventende) { toast("Vent til forrige melding er sendt."); jobb.gjenopprett(); return; }
-
-  const sendNaa = async () => {
-    const j = ventende; ventende = null;
-    if (!j) return;
-    clearInterval(j.teller);
-    try {
-      await post("/ticket_articles", j.kropp);
-      if (j.etterpa) j.ticket = await put(`/tickets/${j.saksId}`, j.etterpa);
-      toast(j.notat ? "Notat lagret" : j.etterpa ? "Svar sendt og saken lukket" : "Svar sendt");
-      ferdig(j);
-    } catch (e) {
-      j.gjenopprett();
-      feilet(j, e);
-    }
-  };
-
-  /* Et internt notat når ingen utenfor huset, så det går med en gang. Bare svar til kunde
-     ligger i ti sekunder, siden de ikke kan hentes tilbake. */
-  if (jobb.notat) {
-    ventende = { ...jobb };
-    toast("Lagrer notat …");
-    sendNaa();
-    return;
-  }
-
-  const avbryt = () => {
-    if (!ventende) return;
-    const j = ventende; ventende = null;
-    clearTimeout(j.timer); clearInterval(j.teller);
-    j.gjenopprett();
-    toast("Avbrutt. Utkastet er tilbake.");
-  };
-  let igjen = Math.round(ANGRE_MS / 1000);
-  const tekst = () => `${jobb.beskrivelse} om ${igjen} s …`;
   ventende = { ...jobb };
-  ventende.timer = setTimeout(sendNaa, ANGRE_MS);
-  /* Nedtellingen tegnes på nytt hvert sekund, ellers står «10 s» stille og ser frosset ut. */
-  ventende.teller = setInterval(() => {
-    igjen -= 1;
-    if (!ventende) return;
-    if (igjen > 0) toast(tekst(), avbryt);
-  }, 1000);
-  toast(tekst(), avbryt);
+  toast(jobb.notat ? "Lagrer notat …" : "Sender svar …");
+  try {
+    await post("/ticket_articles", jobb.kropp);
+    if (jobb.etterpa) jobb.ticket = await put(`/tickets/${jobb.saksId}`, jobb.etterpa);
+    ventende = null;
+    toast(jobb.notat ? "Notat lagret" : jobb.etterpa ? "Svar sendt og saken lukket" : "Svar sendt");
+    ferdig(jobb);
+  } catch (e) {
+    ventende = null;
+    jobb.gjenopprett();
+    feilet(jobb, e);
+  }
 }
