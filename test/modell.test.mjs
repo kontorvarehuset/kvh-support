@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { byggSaker, byggArtikkel, skillSitat, navnFraFra, kortTid, bildeUrl, STATUS_ID } from "../site/js/modell.js";
+import { sokeSporring, escES, byggSaker, byggArtikkel, skillSitat, navnFraFra, kortTid, bildeUrl, STATUS_ID } from "../site/js/modell.js";
 
 const naa = new Date("2026-10-15T12:00:00").getTime();
 const res = {
@@ -73,4 +73,12 @@ const skjult = byggArtikkel({ sender: "Customer", type: "email", attachments: [
 ] }, new Map()).vedlegg.map((v) => v.skjul);
 assert.deepEqual(skjult, [true, false, true], "message.html og alternativkopier skjules, ekte vedlegg vises");
 assert.equal(byggArtikkel({ sender: "Customer", type: "web", attachments: [{ id: 1, filename: "message.html", preferences: {} }] }, new Map()).vedlegg[0].skjul, false, "bare e-post: et skjema-vedlegg med samme navn vises");
+assert.equal(escES('Bud-Hustad: "test" (1)'), 'Bud\\-Hustad\\: \\"test\\" \\(1\\)', "spesialtegn escapes, så tekst forblir tekst");
+assert.equal(escES("grete@sylteosen.example 13753"), "grete@sylteosen.example 13753", "@, punktum og tall er trygge");
+let q = sokeSporring("skriver", { apne: true, lukkede: false });
+assert.match(q, /^\(skriver\) AND state\.name:\(new OR open OR "pending reminder"/); assert.equal(q.includes("closed"), false);
+q = sokeSporring("skriver", { apne: false, lukkede: true });
+assert.equal(q, "(skriver) AND state.name:closed");
+q = sokeSporring("skriver  ", { apne: true, lukkede: true });
+assert.match(q, /AND \(state\.name:\(.*\) OR state\.name:closed\)$/); assert.ok(q.startsWith("(skriver) AND"));
 console.log("modell: ok");

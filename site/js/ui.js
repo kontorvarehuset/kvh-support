@@ -12,12 +12,13 @@
 
 import { hent, put, IkkeInnlogget } from "./api.js";
 import {
-  STATUSNAVN_APNE, INGEN_EIER, bildeUrl, beregnStatus, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
+  STATUSNAVN_APNE, INGEN_EIER, bildeUrl, beregnStatus, sokeSporring, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
   kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
 } from "./modell.js";
 import { rens } from "./rens.js";
 import { monter, planleggSending, SPERRE_TIL } from "./skriv.js";
 import { apneNySak } from "./ny-sak.js";
+import { apneVideresend } from "./videresend.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -25,6 +26,9 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const S = {
   me: null,
   lokale: new Map(),
+  treff: null,
+  omfang: { apne: true, lukkede: true },
+  sokSeq: 0,
   agenter: [],
   saker: [],
   lukkede: null,
@@ -114,12 +118,14 @@ function avatarInnhold(navn, url) {
   return esc(initialer(navn)) + (url ? `<img class="prof" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "");
 }
 
-const alle = () => [...S.saker, ...(S.lukkede || [])];
+const alle = () => [...S.saker, ...(S.lukkede || []), ...(S.treff ? S.treff.liste : [])];
 const finn = (id) => alle().find((x) => x.id === id);
 
 /* ── Utvalg ──────────────────────────────────────────────────────────── */
 
 function synlige() {
+  /* Mens et søk i alle saker står, er det treffene som vises, ikke fanen man sto i. */
+  if (S.treff) return S.treff.liste.filter((x) => S.visning !== "mine" || x.eierId === S.me?.id);
   const kilde = S.fane === "lukket" ? (S.lukkede || []) : S.saker.filter((x) => x.status === S.fane);
   const q = S.filter.trim().toLowerCase();
   return kilde.filter((x) =>
@@ -171,7 +177,7 @@ function tegnFaner() {
   const n = (s) => S.saker.filter((x) => x.status === s).length;
   const F = [["åpen", "Åpne", n("åpen")], ["vent", "På vent", n("vent")], ["lukket", "Lukket", S.lukkede ? S.lukkede.length : null]];
   $("#faner").innerHTML = F.map(([k, nn, t]) =>
-    `<button role="tab" aria-selected="${k === S.fane}" data-f="${k}">${nn}<span class="t">${t ?? ""}</span></button>`).join("");
+    `<button role="tab" aria-selected="${!S.treff && k === S.fane}" data-f="${k}">${nn}<span class="t">${t ?? ""}</span></button>`).join("");
   /* Tallene under Alle/Mine gjelder fanen man står i, ikke «alt som ikke er lukket».
      Med 7 under Alle og 2 i lista så det ut som en feil, selv om begge var riktige. */
   const kilde = S.fane === "lukket" ? (S.lukkede || []) : S.saker.filter((x) => x.status === S.fane);
@@ -180,14 +186,26 @@ function tegnFaner() {
     `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${kilde.filter((x) => x.eierId === S.me?.id).length}</span></button>`;
 }
 
+function sokStripe() {
+  const t = S.treff;
+  if (!t || t.laster) return "";
+  const hvor = S.omfang.apne && S.omfang.lukkede ? "åpne og lukkede" : S.omfang.apne ? "åpne" : "lukkede";
+  return `<div class="sok-strip"><span>${t.total} ${t.total === 1 ? "treff" : "treff"} i ${hvor} saker${t.total > t.liste.length ? `, viser de ${t.liste.length} sist endret` : ""}</span><button type="button" data-a="nullstill-sok">Nullstill søk</button></div>`;
+}
+
 function tegnListe() {
-  if (S.fane === "lukket" && S.lukkede === null && !S.feil) { $("#rader").innerHTML = `<div class="laster">Henter lukkede saker …</div>`; return; }
+  if (S.treff) {
+    if (S.treff.laster && !S.treff.liste.length) { $("#rader").innerHTML = `<div class="laster">Søker i alle saker …</div>`; return; }
+    if (S.treff.feil) { $("#rader").innerHTML = `<div class="feil"><b>Søket feilet</b>${esc(S.treff.feil)}</div>`; return; }
+  } else if (S.fane === "lukket" && S.lukkede === null && !S.feil) { $("#rader").innerHTML = `<div class="laster">Henter lukkede saker …</div>`; return; }
   const rader = synlige();
   if (!rader.length) {
-    $("#rader").innerHTML = `<div class="tomt"><div class="w">${S.filter ? "Ingen treff" : S.visning === "mine" ? "Ingen saker på deg" : S.fane === "åpen" ? "Alt er besvart" : "Ingenting her"}</div>${S.filter ? "Prøv et annet søkeord." : ""}</div>`;
+    const tittel = S.treff ? "Ingen treff" : S.filter ? "Ingen treff" : S.visning === "mine" ? "Ingen saker på deg" : S.fane === "åpen" ? "Alt er besvart" : "Ingenting her";
+    const under = S.treff ? `Ingen saker i Zammad passer med «${esc(S.treff.q)}». Prøv et annet ord, eller ta med både åpne og lukkede.` : S.filter ? "Prøv et annet søkeord." : "";
+    $("#rader").innerHTML = sokStripe() + `<div class="tomt"><div class="w">${tittel}</div>${under}</div>`;
     return;
   }
-  $("#rader").innerHTML = rader.map((x) => {
+  $("#rader").innerHTML = sokStripe() + rader.map((x) => {
     const m = [];
     if (x.status === "vent") m.push(`<span class="chip vent">${x.ventTil ? "Til " + esc(ventTekst(x.ventTil)) : "Venter på svar"}</span>`);
     if (x.status === "lukket") m.push(`<span class="chip ok">Lukket</span>`);
@@ -209,15 +227,15 @@ function vedleggUrl(a, v) { return `/api/v1/ticket_attachment/${a.ticketId}/${a.
 
 function tegnArtikler(sak, liste) {
   const ROLLE = { kunde: "Kunde", oss: "KVH", notat: "🔒 Internt", system: "System" };
-  const hode = (a) => {
+  const hode = (a, i) => {
     const under = a.slag === "notat" ? `<span style="color:var(--stale);font-size:12.5px">Kunden ser ikke dette</span>` : "";
-    return `<div class="hode"><b>${esc(a.navn)}</b><span class="rolle">${ROLLE[a.slag]}</span>${under}<span class="tid">${esc(langTid(a.tid))}</span></div>`;
+    return `<div class="hode"><b>${esc(a.navn)}</b><span class="rolle">${ROLLE[a.slag]}</span>${under}<span class="tid">${esc(langTid(a.tid))}</span><button type="button" class="vid" data-vid="${i}" title="Videresend denne meldingen på e-post" aria-label="Videresend meldingen fra ${esc(a.navn)}">↪ Videresend</button></div>`;
   };
   return liste.map((a, i) => a.slag === "system"
     ? `<div class="hend"><span class="sys">Automatisk svar til ${esc(navnFraFra(a.til) || a.til || "kunden")}${a.emne ? ": «" + esc(a.emne) + "»" : ""}</span><span class="sys">· ${esc(langTid(a.tid))}</span></div>`
     : `<article class="mld ${a.slag}">
         <div class="av" aria-hidden="true">${avatarInnhold(a.navn, bildeUrl({ image: a.bilde }))}</div>
-        <div>${hode(a)}
+        <div>${hode(a, i)}
           ${a.cc.length ? `<div class="ccvis">Cc: ${a.cc.map(esc).join(", ")}</div>` : ""}
           <div class="boble" data-a="${i}"></div>
         </div></article>`).join("");
@@ -500,7 +518,50 @@ function tegnSak() {
   const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight;
 }
 
-function helhet() { tegnBruker(); tegnHero(); tegnFaner(); tegnListe(); tegnSak(); }
+function tegnOmfang() {
+  const rot = $("#omfang"); if (!rot) return;
+  const vis = S.filter.trim().length >= 3;
+  rot.hidden = !vis;
+  if (!vis) return;
+  rot.innerHTML = `<span>Søk i:</span>` +
+    `<button type="button" data-o="apne" aria-pressed="${S.omfang.apne}">Åpne</button>` +
+    `<button type="button" data-o="lukkede" aria-pressed="${S.omfang.lukkede}">Lukkede</button>`;
+}
+
+/* Søk i ALLE saker i Zammad, også meldingsteksten. Zammad søker på tvers av tittel, kunde og artikler. */
+async function kjorSok() {
+  const q = S.filter.trim();
+  tegnOmfang();
+  if (q.length < 3) { S.sokSeq++; S.treff = null; tegnFaner(); tegnListe(); return; }
+  const seq = ++S.sokSeq;
+  S.treff = { q, liste: S.treff ? S.treff.liste : [], total: 0, laster: true };
+  tegnFaner(); tegnListe();
+  try {
+    const res = await sok(sokeSporring(q, S.omfang), 50);
+    if (seq !== S.sokSeq) return;
+    for (const [id, b] of brukereFra(res)) S.brukere.set(id, b);
+    const liste = byggSaker(res);
+    S.treff = { q, liste, total: res.total_count ?? liste.length, laster: false };
+  } catch (e) {
+    if (seq !== S.sokSeq) return;
+    if (e instanceof IkkeInnlogget) return visInnlogging();
+    S.treff = { q, liste: [], total: 0, laster: false, feil: e.message };
+  }
+  const l = synlige();
+  if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+  helhet();
+  if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
+}
+
+function nullstillSok() {
+  S.sokSeq++; S.treff = null; S.filter = "";
+  const sok = $("#sok"); if (sok) sok.value = "";
+  tegnOmfang();
+  const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+  helhet();
+}
+
+function helhet() { tegnBruker(); tegnHero(); tegnFaner(); tegnOmfang(); tegnListe(); tegnSak(); }
 
 /* ── Handlinger ──────────────────────────────────────────────────────── */
 
@@ -518,6 +579,7 @@ async function velgSak(id) {
 }
 
 async function byttFane(f) {
+  if (S.treff) nullstillSok();
   S.fane = f; S.spesial = null;
   if (f === "lukket" && S.lukkede === null) {
     tegnFaner(); tegnListe();
@@ -555,13 +617,30 @@ function koble() {
     const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
     helhet();
   });
-  $("#sok").addEventListener("input", (e) => { S.filter = e.target.value; tegnListe(); });
+  let sokTid = 0;
+  $("#sok").addEventListener("input", (e) => {
+    S.filter = e.target.value;
+    clearTimeout(sokTid);
+    if (S.filter.trim().length < 3) { kjorSok(); if (!S.treff) tegnListe(); return; }
+    sokTid = setTimeout(kjorSok, 400);
+  });
+  $("#sok").addEventListener("keydown", (e) => { if (e.key === "Enter") { clearTimeout(sokTid); kjorSok(); } });
+  $("#omfang").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-o]"); if (!b) return;
+    const k = b.dataset.o, annet = k === "apne" ? "lukkede" : "apne";
+    /* Minst ett av valgene må stå på, ellers finnes ingenting å søke i. */
+    if (S.omfang[k] && !S.omfang[annet]) return;
+    S.omfang[k] = !S.omfang[k];
+    kjorSok();
+  });
+  $("#rader").addEventListener("click", (e) => { if (e.target.closest("[data-a='nullstill-sok']")) nullstillSok(); });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
   $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, toast, etterOpprettet }));
   $("#toast-b").addEventListener("click", () => { if (angreFn) angreFn(); });
   $("#hero").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-t]"); if (!b) return;
     const k = b.dataset.t;
+    if (S.treff) { S.sokSeq++; S.treff = null; S.filter = ""; const sk = $("#sok"); if (sk) sk.value = ""; tegnOmfang(); }
     S.spesial = k === "uten" || k === "gamle" ? (S.spesial === k ? null : k) : null;
     S.fane = k === "vent" ? "vent" : "åpen";
     if (S.spesial === "uten") S.visning = "alle";
@@ -571,6 +650,13 @@ function koble() {
     if (S.valgt && !S.artikler.has(S.valgt)) velgSak(S.valgt);
   });
   $("#sak").addEventListener("click", (e) => {
+    const vid = e.target.closest("[data-vid]");
+    if (vid && S.valgt) {
+      const sak = finn(S.valgt), ar = S.artikler.get(S.valgt);
+      const art = ar && ar.liste[Number(vid.dataset.vid)];
+      if (sak && art) apneVideresend({ sak, artikkel: art, toast, ferdig: etterSending, innlogging: visInnlogging });
+      return;
+    }
     if (e.target.closest("[data-a='tilbake']")) $("#app").classList.remove("sak-åpen");
     const vb = e.target.closest("#vent-b");
     if (vb) { const p = $("#vent-pop"); p.hidden = !p.hidden; vb.setAttribute("aria-expanded", String(!p.hidden)); const q = $("#eier-pop"); if (q) q.hidden = true; return; }

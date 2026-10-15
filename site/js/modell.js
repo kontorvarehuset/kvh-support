@@ -210,3 +210,19 @@ export function storrelseTekst(b) {
   if (b < 1024 * 1024) return `${Math.round(b / 1024)} kB`;
   return `${(b / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
 }
+
+/* Spesialtegn i Elasticsearchs spørresyntaks. Brukerens tekst skal være tekst, ikke syntaks: et kolon,
+   en anførselstegn eller en bindestrek i et navn ville ellers gitt en feil eller et annet søk enn ment. */
+const ES_SPESIAL = /[+\-=&|><!(){}\[\]^"~*?:\\/]/g;
+export const escES = (s) => String(s).replace(ES_SPESIAL, "\\$&");
+
+/**
+ * Søk i ALLE saker i Zammad, også meldingstekst. `omfang`: {apne, lukkede}. Åpne betyr alt som ikke er
+ * lukket eller slått sammen (inkludert på vent), siden det er slik resten av siden bruker ordet.
+ */
+export function sokeSporring(q, omfang) {
+  const apne = "state.name:(" + STATUSNAVN_APNE.map((n) => (n.includes(" ") ? `"${n}"` : n)).join(" OR ") + ")";
+  const lukket = "state.name:closed";
+  const tilstand = omfang.apne && omfang.lukkede ? `(${apne} OR ${lukket})` : omfang.apne ? apne : lukket;
+  return `(${escES(q.trim())}) AND ${tilstand}`;
+}
