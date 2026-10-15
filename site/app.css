@@ -389,3 +389,12 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .tråd{padding-bottom:24px}
 .skriv-rot{padding-top:2px}
 @media (max-width:860px){.tråd{padding-bottom:16px}}
+
+/* ── Rullefelt og skjemakontroller følger draktvalget, ikke maskinens innstilling ──────────────────────
+   Bare mørk drakt satte `color-scheme`, så valgte man lys drakt med mørk maskin, ble rullefeltene mørke på lys bunn.
+   Alle tre tilstandene settes eksplisitt, og fargen på selve feltet følger tokens. */
+:root{color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark}}
+:root[data-theme="dark"]{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+*{scrollbar-color:var(--kant) transparent}
