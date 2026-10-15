@@ -30,6 +30,7 @@ const S = {
   lokale: new Map(),
   treff: null,
   omfang: { apne: true, lukkede: true },
+  visVent: false,
   sokSeq: 0,
   agenter: [],
   saker: [],
@@ -125,10 +126,18 @@ const finn = (id) => alle().find((x) => x.id === id);
 
 /* ── Utvalg ──────────────────────────────────────────────────────────── */
 
+/* Lista for fanen man står i, før søk og filtre. Med «Vis også saker på vent» har fanen Åpne både åpne saker
+   og saker på vent, åpne FØRST (det som haster øverst), så de på vent. */
+function faneKilde() {
+  if (S.fane === "lukket") return S.lukkede || [];
+  if (S.fane === "åpen" && S.visVent) return [...S.saker.filter((x) => x.status === "åpen"), ...S.saker.filter((x) => x.status === "vent")];
+  return S.saker.filter((x) => x.status === S.fane);
+}
+
 function synlige() {
   /* Mens et søk i alle saker står, er det treffene som vises, ikke fanen man sto i. */
   if (S.treff) return S.treff.liste.filter((x) => S.visning !== "mine" || x.eierId === S.me?.id);
-  const kilde = S.fane === "lukket" ? (S.lukkede || []) : S.saker.filter((x) => x.status === S.fane);
+  const kilde = faneKilde();
   const q = S.filter.trim().toLowerCase();
   return kilde.filter((x) =>
     (S.visning !== "mine" || x.eierId === S.me?.id) &&
@@ -177,15 +186,29 @@ function tegnHero() {
 
 function tegnFaner() {
   const n = (s) => S.saker.filter((x) => x.status === s).length;
-  const F = [["åpen", "Åpne", n("åpen")], ["vent", "På vent", n("vent")], ["lukket", "Lukket", S.lukkede ? S.lukkede.length : null]];
+  const F = [["åpen", "Åpne", n("åpen") + (S.visVent ? `<span class="pluss">+${n("vent")}</span>` : "")], ["vent", "På vent", n("vent")], ["lukket", "Lukket", S.lukkede ? S.lukkede.length : null]];
   $("#faner").innerHTML = F.map(([k, nn, t]) =>
     `<button role="tab" aria-selected="${!S.treff && k === S.fane}" data-f="${k}">${nn}<span class="t">${t ?? ""}</span></button>`).join("");
   /* Tallene under Alle/Mine gjelder fanen man står i, ikke «alt som ikke er lukket».
      Med 7 under Alle og 2 i lista så det ut som en feil, selv om begge var riktige. */
-  const kilde = S.fane === "lukket" ? (S.lukkede || []) : S.saker.filter((x) => x.status === S.fane);
+  const kilde = faneKilde();
+  const vr = $("#vis-vent-rad"); if (vr) { vr.hidden = S.fane !== "åpen" || !!S.treff; $("#vis-vent").checked = S.visVent; }
   $("#visning").innerHTML =
     `<button data-v="alle" aria-pressed="${S.visning === "alle"}">Alle saker<span class="t">${kilde.length}</span></button>` +
     `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${kilde.filter((x) => x.eierId === S.me?.id).length}</span></button>`;
+}
+
+/* Statusmerke i margen: grønn åpen hengelås = åpen, gul klokke = på vent, grå lukket hengelås = lukket. Formen skiller
+   dem også uten farger. Den oransje prikken er «venter på svar fra oss». */
+const IK_STAT = {
+  åpen: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  vent: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  lukket: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+};
+const STAT_NAVN = { åpen: "Åpen", vent: "På vent", lukket: "Lukket" };
+function statusMerke(x) {
+  const tittel = STAT_NAVN[x.status] + (x.venterPaaOss ? " · venter på svar fra oss" : "");
+  return `<span class="stat ${x.status}" role="img" aria-label="${esc(tittel)}" title="${esc(tittel)}">${IK_STAT[x.status] || ""}${x.venterPaaOss ? '<span class="stat-prikk"></span>' : ""}</span>`;
 }
 
 function sokStripe() {
@@ -207,6 +230,8 @@ function tegnListe() {
     $("#rader").innerHTML = sokStripe() + `<div class="tomt"><div class="w">${tittel}</div>${under}</div>`;
     return;
   }
+  const gruppert = !S.treff && S.fane === "åpen" && S.visVent;
+  let skilleSatt = false;
   $("#rader").innerHTML = sokStripe() + rader.map((x) => {
     const m = [];
     if (x.status === "vent") m.push(`<span class="chip vent">${x.ventTil ? "Til " + esc(ventTekst(x.ventTil)) : "Venter på svar"}</span>`);
@@ -215,8 +240,14 @@ function tegnListe() {
     if (x.dager >= 1) m.push(`<span class="chip vent">Venter ${x.dager} d</span>`);
     if (!x.eier && x.status !== "lukket") m.push(`<span class="chip ingen">Uten eier</span>`);
     const eierPrikk = x.eier ? `<span class="mini-av ${x.eierId === S.me?.id ? "" : "andre"}" title="${esc(x.eier)}">${avatarInnhold(x.eier, bildeId(x.eierId))}</span>` : "";
-    return `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
-      ${x.venterPaaOss ? '<span class="prikk" aria-label="Venter på svar fra oss"></span>' : ""}
+    /* Skillelinje før første sak på vent når åpne og på vent vises sammen. */
+    let skille = "";
+    if (gruppert && x.status === "vent" && !skilleSatt) {
+      skilleSatt = true;
+      skille = `<div class="skille">På vent · ${rader.filter((r) => r.status === "vent").length}</div>`;
+    }
+    return skille + `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
+      ${statusMerke(x)}
       <span class="l1"><span class="kunde">${esc(x.kunde)}</span><span class="tid">${esc(kortTid(x.sist))}</span>${eierPrikk}</span>
       <span class="emne" style="display:block">${esc(x.emne)}</span>
       <span class="utdrag" style="display:block">${esc(x.fra)} · #${esc(x.nummer)} · ${x.antall} ${x.antall === 1 ? "melding" : "meldinger"}</span>
@@ -633,6 +664,13 @@ function koble() {
     sokTid = setTimeout(kjorSok, 400);
   });
   $("#sok").addEventListener("keydown", (e) => { if (e.key === "Enter") { clearTimeout(sokTid); kjorSok(); } });
+  try { S.visVent = localStorage.getItem("kvhui-vis-vent") === "1"; } catch { S.visVent = false; }
+  $("#vis-vent").addEventListener("change", (e) => {
+    S.visVent = e.target.checked;
+    try { localStorage.setItem("kvhui-vis-vent", S.visVent ? "1" : "0"); } catch { /* ingen lagring */ }
+    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = l.length ? l[0].id : null;
+    helhet();
+  });
   $("#omfang").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-o]"); if (!b) return;
     const k = b.dataset.o, annet = k === "apne" ? "lukkede" : "apne";
