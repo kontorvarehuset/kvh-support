@@ -185,8 +185,11 @@ window.addEventListener("beforeunload", (e) => { if (ventende) { e.preventDefaul
 
 export function planleggSending(jobb, { toast, ferdig, feilet }) {
   if (ventende) { toast("Vent til forrige melding er sendt."); jobb.gjenopprett(); return; }
-  const t = setTimeout(async () => {
+
+  const sendNaa = async () => {
     const j = ventende; ventende = null;
+    if (!j) return;
+    clearInterval(j.teller);
     try {
       await post("/ticket_articles", j.kropp);
       toast(j.notat ? "Notat lagret" : "Svar sendt");
@@ -195,13 +198,33 @@ export function planleggSending(jobb, { toast, ferdig, feilet }) {
       j.gjenopprett();
       feilet(j, e);
     }
-  }, ANGRE_MS);
-  ventende = { ...jobb, timer: t };
-  toast(jobb.beskrivelse + " om 10 s …", () => {
+  };
+
+  /* Et internt notat når ingen utenfor huset, så det går med en gang. Bare svar til kunde
+     ligger i ti sekunder, siden de ikke kan hentes tilbake. */
+  if (jobb.notat) {
+    ventende = { ...jobb };
+    toast("Lagrer notat …");
+    sendNaa();
+    return;
+  }
+
+  const avbryt = () => {
     if (!ventende) return;
-    clearTimeout(ventende.timer);
     const j = ventende; ventende = null;
+    clearTimeout(j.timer); clearInterval(j.teller);
     j.gjenopprett();
     toast("Avbrutt. Utkastet er tilbake.");
-  });
+  };
+  let igjen = Math.round(ANGRE_MS / 1000);
+  const tekst = () => `${jobb.beskrivelse} om ${igjen} s …`;
+  ventende = { ...jobb };
+  ventende.timer = setTimeout(sendNaa, ANGRE_MS);
+  /* Nedtellingen tegnes på nytt hvert sekund, ellers står «10 s» stille og ser frosset ut. */
+  ventende.teller = setInterval(() => {
+    igjen -= 1;
+    if (!ventende) return;
+    if (igjen > 0) toast(tekst(), avbryt);
+  }, 1000);
+  toast(tekst(), avbryt);
 }
