@@ -464,14 +464,15 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   .skriv.utvidet .svar-knapp{display:none}
 }
 
-/* ── Tallene i båndet står på samme linje ────────────────────────────────────────────────────────────
-   Etikettene bryter over ulikt antall linjer på smale skjermer («Åpne saker · valgt» to, «Venter over et døgn» tre),
-   og tallene lå rett under og havnet i ulik høyde. Nå trykkes tallet ned til bunnen av kolonnen (og kolonnene er like
-   høye), så de står på én linje uansett hvor mange linjer etiketten bruker. «· valgt» kuttes på smale skjermer: den
-   oransje streken under viser det allerede, og ordet er det som gjorde etiketten tre linjer høy. */
-.tall button .n{margin-top:auto;padding-top:8px}
-.tall button .e{min-height:0}
+/* ── Tallene i båndet: lik høyde på etikettene, og tallet tett under ──────────────────────────────────
+   Etikettene brøt over ulikt antall linjer på smale skjermer, så tallene sto i ulik høyde. Først ble tallet trykket ned i
+   bunnen (samme linje, men et uryddig hull under korte etiketter). Nå: KORTE etiketter på smale skjermer, og alle
+   etiketter reserverer plass til to linjer, så tallet starter på samme sted og står tett under. */
+.tall .e .kort{display:none}
 @media (max-width:860px){
+  .tall .e .lang{display:none}
+  .tall .e .kort{display:block}
+  .tall button .e{min-height:2.7em;line-height:1.35;letter-spacing:.08em}
+  .tall button .n{margin-top:0;padding-top:6px}
   .tall button[aria-pressed="true"] .e::after{content:none}
-  .tall button .e{letter-spacing:.08em}
 }

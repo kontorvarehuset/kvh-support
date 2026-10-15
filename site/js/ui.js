@@ -169,6 +169,9 @@ function tegnBruker() {
     : "";
 }
 
+/* Kortere etiketter til smale skjermer: tre linjer med «Venter over et døgn» gjorde kolonnene ulike i høyde. */
+const KORT_ETIKETT = { åpne: "Åpne", uten: "Uten eier", gamle: "Over et døgn", vent: "På vent" };
+
 function tegnHero() {
   const naa = new Date();
   const h = naa.getHours();
@@ -194,7 +197,7 @@ function tegnHero() {
       <div class="under">${trenger ? `Du har ${trenger} ${trenger === 1 ? "sak" : "saker"} som venter på deg.` : "Ingenting venter på deg akkurat nå."}</div>
     </div>
     <div class="tall" id="tall" role="group" aria-label="Snarveier til saker">${kort.map(([k, e, n, u, kl, paa, t]) =>
-      `<button data-t="${k}" class="${kl}" aria-pressed="${!!paa}" title="${esc(t)}" aria-label="${n} ${esc(e.toLowerCase())}"><span class="e">${esc(e)}</span><span class="n">${n}</span><span class="u">${esc(u)}</span></button>`).join("")}</div>`;
+      `<button data-t="${k}" class="${kl}" aria-pressed="${!!paa}" title="${esc(t)}" aria-label="${n} ${esc(e.toLowerCase())}"><span class="e"><span class="lang">${esc(e)}</span><span class="kort">${esc(KORT_ETIKETT[k] || e)}</span></span><span class="n">${n}</span><span class="u">${esc(u)}</span></button>`).join("")}</div>`;
   const ny = apne.filter((x) => x.venterPaaOss || !x.eier).length;
   document.title = (ny ? `(${ny}) ` : "") + "KVH Support";
   meldOpp(ny);
