@@ -326,6 +326,34 @@ function fyllBobler(sak, liste) {
 }
 
 /* Artiklene tegnes for seg, slik at en oppfriskning ikke river ned skriveflata mens noen skriver. */
+/*
+ * Rull til nyeste melding, og HOLD der mens innholdet setter seg.
+ *
+ * Å rulle ned i det samtalen tegnes er ikke nok: bilder og profilbilder laster etterpå, og skriveflata blir høyere
+ * når signaturen er hentet, så samtalen vokser (eller vinduet krymper) og man står igjen midt i. Vi følger
+ * bunnen i noen sekunder, og slutter med en gang brukeren selv ruller eller trykker i samtalen.
+ */
+let holdNede = null;
+function rullNed() {
+  if (holdNede) holdNede();
+  const t = $("#tråd"); if (!t) return;
+  let aktiv = true;
+  const ned = () => { if (aktiv) t.scrollTop = t.scrollHeight; };
+  ned();
+  const ro = typeof ResizeObserver === "function" ? new ResizeObserver(ned) : null;
+  if (ro) { if (t.firstElementChild) ro.observe(t.firstElementChild); const sr = $("#skriv-rot"); if (sr) ro.observe(sr); }
+  const hendelser = ["wheel", "touchstart", "pointerdown", "keydown"];
+  const stopp = () => {
+    aktiv = false; clearTimeout(tid);
+    if (ro) ro.disconnect();
+    for (const h of hendelser) t.removeEventListener(h, stopp);
+    if (holdNede === stopp) holdNede = null;
+  };
+  const tid = setTimeout(stopp, 3000);
+  for (const h of hendelser) t.addEventListener(h, stopp, { passive: true });
+  holdNede = stopp;
+}
+
 function tegnArtikkelRot(sak) {
   const rot = $("#art-rot"); if (!rot) return;
   const ar = S.artikler.get(sak.id);
@@ -351,7 +379,7 @@ async function etterSending(j) {
   utsattOppfrisk();
   const sak = finn(j.saksId);
   if (S.valgt === j.saksId && sak && j.etterpa && !synlige().some((x) => x.id === j.saksId)) { velgNeste(j.saksId); return; }
-  if (S.valgt === j.saksId && sak) { tegnBanner(sak); tegnSakTopp(sak); tegnArtikkelRot(sak); const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight; }
+  if (S.valgt === j.saksId && sak) { tegnBanner(sak); tegnSakTopp(sak); tegnArtikkelRot(sak); rullNed(); }
 }
 
 function feilVedSending(j, e) {
@@ -554,7 +582,7 @@ function tegnSak() {
   tegnBanner(sak);
   tegnArtikkelRot(sak);
   monterSkriveflate(sak);
-  const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight;
+  rullNed();
 }
 
 function tegnOmfang() {
