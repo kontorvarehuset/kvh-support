@@ -479,3 +479,16 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 
 .versjon{flex:none;padding:4px 14px 8px;color:var(--mist);font:500 10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
 .versjon:empty{display:none}
+
+/* ── Saklista på telefon rulles som en vanlig side ──────────────────────────────────────────────────
+   Toppen (merkelinje, hilsen, tall, tittel, faner, søk, valg) tok to tredjedeler av skjermen, og lista rullet i en liten
+   stripe under: «Alle saker 3» viste to rader. Nå ruller HELE lista-visningen som en side, så toppen forsvinner oppover
+   og lista får skjermen. Bare når ingen sak er åpen: saken har egen rulling og skriveflate nederst. */
+@media (max-width:860px){
+  html:not([data-innbygd]) .app:not(.sak-åpen){height:auto;min-height:100%;overflow:visible}
+  html:not([data-innbygd]) .app:not(.sak-åpen) .flate,
+  html:not([data-innbygd]) .app:not(.sak-åpen) .liste,
+  html:not([data-innbygd]) .app:not(.sak-åpen) .rader{overflow:visible;min-height:auto;flex:none;height:auto}
+  html:not([data-innbygd]),html:not([data-innbygd]) body{height:auto;min-height:100%;overflow-y:auto}
+}
+.versjon{text-transform:none}
