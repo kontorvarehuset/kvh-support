@@ -227,7 +227,7 @@ export function planleggSending(jobb, { toast, ferdig, feilet }) {
     clearInterval(j.teller);
     try {
       await post("/ticket_articles", j.kropp);
-      if (j.etterpa) await put(`/tickets/${j.saksId}`, j.etterpa);
+      if (j.etterpa) j.ticket = await put(`/tickets/${j.saksId}`, j.etterpa);
       toast(j.notat ? "Notat lagret" : j.etterpa ? "Svar sendt og saken lukket" : "Svar sendt");
       ferdig(j);
     } catch (e) {

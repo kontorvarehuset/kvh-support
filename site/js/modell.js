@@ -22,6 +22,15 @@ export const INGEN_EIER = 1;
 
 const DAG = 86_400_000;
 
+/** Status ut fra Zammads state_id og frist. Brukes både når lista leses og når vi selv har endret en sak. */
+export function beregnStatus(stateId, pendingTime, naa = Date.now()) {
+  let status = STATUS_ID[stateId] || "åpen";
+  const ventTid = pendingTime ? new Date(pendingTime).getTime() : null;
+  const fristNaadd = VENTESTATUSER.has(stateId) && ventTid !== null && ventTid <= naa;
+  if (fristNaadd) status = "åpen";
+  return { status, ventTid, fristNaadd };
+}
+
 export function navnPaa(b) {
   if (!b) return "";
   const n = `${b.firstname || ""} ${b.lastname || ""}`.trim();
@@ -57,17 +66,11 @@ export function byggSaker(res, naa = Date.now()) {
     const eier = t.owner_id && t.owner_id !== INGEN_EIER ? U[t.owner_id] : null;
     const sistKunde = tid(t.last_contact_customer_at);
     const sistOss = tid(t.last_contact_agent_at);
-    let status = STATUS_ID[t.state_id] || "åpen";
-    /* En sak satt på vent (3 pending reminder, 6 pending close) er på vent bare til
-       fristen. Er fristen passert, venter den på OSS igjen: Zammad kaller det
-       «Pending Reached». Uten dette ble «på vent» en søppelkasse der saker ble
-       liggende etter at påminnelsen var gått. Målt 15. okt. 2026: Zammads «Åpne
-       saker» (3) telte pending reminder som åpne også når fristen lå fram i tid,
+    /* En sak satt på vent (3 pending reminder, 6 pending close, og de egne 7 og 8) er på vent bare til
+       fristen. Er fristen passert, venter den på OSS igjen: Zammad kaller det «Pending Reached». Målt
+       15. okt. 2026: Zammads «Åpne saker» telte pending reminder som åpne også når fristen lå fram i tid,
        mens vi vil se hva som faktisk haster. */
-    const ventTid = tid(t.pending_time);
-    const fristNaadd = VENTESTATUSER.has(t.state_id) && ventTid !== null && ventTid <= naa;
-    if (fristNaadd) status = "åpen";
-    /* «Venter på oss»: fristen er nådd, eller kunden skrev sist og vi har ikke svart etter det. */
+    const { status, ventTid, fristNaadd } = beregnStatus(t.state_id, t.pending_time, naa);
     const venterPaaOss = status === "åpen" && (fristNaadd || (sistKunde !== null && (sistOss === null || sistKunde > sistOss)));
     const referanse = fristNaadd ? ventTid : sistKunde;
     ut.push({
@@ -84,6 +87,7 @@ export function byggSaker(res, naa = Date.now()) {
       eier: eier ? navnPaa(eier) : null,
       venterPaaOss,
       sistKunde,
+      sistOss,
       sist: tid(t.last_contact_at) ?? tid(t.updated_at),
       oppdatert: t.updated_at,
       antall: t.article_count || 0,

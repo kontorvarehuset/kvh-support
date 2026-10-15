@@ -12,7 +12,7 @@
 
 import { hent, put, IkkeInnlogget } from "./api.js";
 import {
-  STATUSNAVN_APNE, INGEN_EIER, bildeUrl, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
+  STATUSNAVN_APNE, INGEN_EIER, bildeUrl, beregnStatus, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
   kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
 } from "./modell.js";
 import { rens } from "./rens.js";
@@ -24,6 +24,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 const S = {
   me: null,
+  lokale: new Map(),
   agenter: [],
   saker: [],
   lukkede: null,
@@ -47,17 +48,38 @@ async function sok(sporring, grense) {
   return hent("/tickets/search?" + q);
 }
 
+/*
+ * Zammads søkeindeks henger noen sekunder etter. Henter vi lista rett etter at vi selv har endret en
+ * sak, får vi derfor ofte den GAMLE versjonen, og saken hopper tilbake til der den var (en gjenåpnet
+ * sak ble stående som lukket til man lastet siden på nytt). Derfor husker vi saker vi har endret i ti
+ * sekunder, og bruker vår versjon til serverens er like fersk eller ferskere.
+ */
+function husk(sak) { S.lokale.set(sak.id, { sak, til: Date.now() + 10_000 }); }
+
+function medLokale(liste, lukkedeListe) {
+  const naa = Date.now();
+  let ut = liste;
+  for (const [id, v] of [...S.lokale]) {
+    if (v.til < naa) { S.lokale.delete(id); continue; }
+    const server = ut.find((x) => x.id === id);
+    if (server && new Date(server.oppdatert) >= new Date(v.sak.oppdatert)) { S.lokale.delete(id); continue; }
+    ut = ut.filter((x) => x.id !== id);
+    if ((v.sak.status === "lukket") === lukkedeListe) ut = [v.sak, ...ut];
+  }
+  return ut;
+}
+
 async function lastSaker() {
   const res = await sok(APNE_SPORRING, 200);
   for (const [id, b] of brukereFra(res)) S.brukere.set(id, b);
-  S.saker = byggSaker(res);
+  S.saker = medLokale(byggSaker(res), false);
   S.mer = (res.total_count || 0) > S.saker.length;
 }
 
 async function lastLukkede() {
   const res = await sok("state.name:closed AND updated_at:[now-30d TO now]", 100);
   for (const [id, b] of brukereFra(res)) S.brukere.set(id, b);
-  S.lukkede = byggSaker(res);
+  S.lukkede = medLokale(byggSaker(res), true);
 }
 
 async function lastArtikler(id) {
@@ -269,11 +291,13 @@ function monterSkriveflate(sak) {
 }
 
 async function etterSending(j) {
+  const sak0 = finn(j.saksId);
+  if (sak0 && j.ticket) brukSvar(sak0, j.ticket, j.etterpa || {});
   try {
-    await lastSaker();
     await lastArtikler(j.saksId);
   } catch (e) { toast("Sendt, men kunne ikke oppdatere visningen: " + e.message); }
   tegnHero(); tegnFaner(); tegnListe();
+  utsattOppfrisk();
   const sak = finn(j.saksId);
   if (S.valgt === j.saksId && sak && j.etterpa && !synlige().some((x) => x.id === j.saksId)) { velgNeste(j.saksId); return; }
   if (S.valgt === j.saksId && sak) { tegnBanner(sak); tegnSakTopp(sak); tegnArtikkelRot(sak); const t = $("#tråd"); if (t) t.scrollTop = t.scrollHeight; }
@@ -308,14 +332,14 @@ function tegnSakTopp(sak) {
         <h2>${esc(sak.emne)}</h2>
         <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
       </div>
-      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status !== "lukket" ? '<button class="knapp primær" data-a="lukk">Lukk saken</button>' : ""}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad">Zammad ↗</a></div>`;
+      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status === "lukket" ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>' : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad">Zammad ↗</a></div>`;
 }
 
 function tegnBanner(sak) {
   const rot = $("#sak-banner"); if (!rot) return;
   rot.innerHTML = sak.status === "vent"
-    ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span><button data-a="aapne">Åpne nå</button></div>`
-    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket.</span><button data-a="aapne">Gjenåpne</button></div>` : "";
+    ? `<div class="banner vent"><span>På vent${sak.ventTil ? " til " + esc(ventTekst(sak.ventTil)) : ", venter på svar"}.</span></div>`
+    : sak.status === "lukket" ? `<div class="banner lukket"><span>Saken er lukket. Gjenåpne den med knappen øverst.</span></div>` : "";
 }
 
 /* Tidspunkter for «på vent». Alle kl. 08:00 lokal tid (Oslo); mandag vises ikke når i morgen er mandag. */
@@ -343,8 +367,10 @@ function ventKnapp(sak) {
 async function endreStatus(sak, kropp, tekst) {
   if (SPERRE_TIL && String(sak.nummer) !== SPERRE_TIL) return toast(`Sperret i prøvemodus: kan bare endres på #${SPERRE_TIL}.`);
   const forrige = { state_id: sak.stateId, pending_time: sak.pendingRaw };
+  const forrigeStatus = sak.status;
   try {
-    await put(`/tickets/${sak.id}`, kropp);
+    const t = await put(`/tickets/${sak.id}`, kropp);
+    brukSvar(sak, t, kropp);
   } catch (e) {
     if (e instanceof IkkeInnlogget) return visInnlogging();
     return toast("Kunne ikke endre saken: " + e.message);
@@ -352,11 +378,15 @@ async function endreStatus(sak, kropp, tekst) {
   await etterEndring(sak.id);
   const fortsatt = finn(sak.id);
   /* Står man i en liste saken ikke lenger hører hjemme i, går man videre til neste sak i stedet for å bli stående på en tom. */
-  if (fortsatt && !synlige().some((x) => x.id === sak.id)) velgNeste(sak.id);
+  if (fortsatt && !synlige().some((x) => x.id === sak.id)) {
+    /* En gjenåpnet sak følger vi til fanen den nå hører hjemme i. Lukkes eller utsettes en sak, går vi videre til neste. */
+    if (forrigeStatus === "lukket") { S.fane = fortsatt.status; helhet(); } else velgNeste(sak.id);
+  }
   else if (fortsatt) { tegnBanner(fortsatt); tegnSakTopp(fortsatt); monterSkriveflate(fortsatt); }
   toast(tekst, async () => {
     try {
-      await put(`/tickets/${sak.id}`, forrige);
+      const t = await put(`/tickets/${sak.id}`, forrige);
+      brukSvar(sak, t, forrige);
       await etterEndring(sak.id);
       S.fane = finn(sak.id)?.status === "lukket" ? "lukket" : finn(sak.id)?.status || S.fane;
       S.valgt = sak.id; helhet();
@@ -380,7 +410,8 @@ async function settEier(sak, nyId) {
   if (forrige === nytt) return;
   const navn = (id) => (id === INGEN_EIER ? null : (S.agenter.find((a) => a.id === id)?.navn || S.brukere.get(id) && navnPaa(S.brukere.get(id)) || "kollega"));
   try {
-    await put(`/tickets/${sak.id}`, { owner_id: nytt });
+    const t = await put(`/tickets/${sak.id}`, { owner_id: nytt });
+    brukSvar(sak, t, { owner_id: nytt });
   } catch (e) {
     if (e instanceof IkkeInnlogget) return visInnlogging();
     return toast("Kunne ikke endre eier: " + e.message);
@@ -389,7 +420,8 @@ async function settEier(sak, nyId) {
   const tekst = nytt === INGEN_EIER ? "Eieren er fjernet" : nytt === S.me?.id ? "Du eier saken nå" : `Saken er gitt til ${navn(nytt)}`;
   toast(tekst, async () => {
     try {
-      await put(`/tickets/${sak.id}`, { owner_id: forrige });
+      const t = await put(`/tickets/${sak.id}`, { owner_id: forrige });
+      brukSvar(sak, t, { owner_id: forrige });
       await etterEndring(sak.id);
       toast("Eier satt tilbake.");
     } catch (e) { toast("Kunne ikke angre: " + e.message); }
@@ -412,11 +444,43 @@ async function etterOpprettet(id) {
   velgSak(id);
 }
 
+/* Legger svaret fra en endring rett inn i saken vi har, uten å vente på søkeindeksen. */
+function brukSvar(sak, t, kropp) {
+  const stateId = t.state_id ?? kropp.state_id ?? sak.stateId;
+  const pend = t.pending_time !== undefined ? t.pending_time : (kropp.pending_time !== undefined ? kropp.pending_time : sak.pendingRaw);
+  const b = beregnStatus(stateId, pend);
+  sak.stateId = stateId; sak.pendingRaw = pend || null; sak.ventTil = b.ventTid; sak.fristNaadd = b.fristNaadd; sak.status = b.status;
+  const eId = t.owner_id !== undefined ? t.owner_id : (kropp.owner_id !== undefined ? kropp.owner_id : (sak.eierId ?? INGEN_EIER));
+  sak.eierId = eId && eId !== INGEN_EIER ? eId : null;
+  const bruker = S.brukere.get(eId);
+  sak.eier = sak.eierId ? (S.agenter.find((a) => a.id === eId)?.navn || (bruker && navnPaa(bruker)) || "kollega") : null;
+  sak.venterPaaOss = sak.status === "åpen" && (sak.fristNaadd || (sak.sistKunde != null && (sak.sistOss == null || sak.sistKunde > sak.sistOss)));
+  sak.oppdatert = t.updated_at || new Date().toISOString();
+  /* Flytt saken mellom lista over åpne og lista over lukkede. */
+  if (sak.status === "lukket") {
+    S.saker = S.saker.filter((x) => x !== sak);
+    if (S.lukkede && !S.lukkede.includes(sak)) S.lukkede.unshift(sak);
+  } else {
+    if (S.lukkede) S.lukkede = S.lukkede.filter((x) => x !== sak);
+    if (!S.saker.includes(sak)) S.saker.unshift(sak);
+  }
+  husk(sak);
+}
+
+/* Henter lista på nytt litt etter en endring (indeksen trenger tid), uten å tegne om samtalen. */
+async function utsattOppfrisk() {
+  for (const ms of [1500, 3500]) {
+    await new Promise((r) => setTimeout(r, ms));
+    try { await lastSaker(); if (S.lukkede) await lastLukkede(); } catch { /* neste runde tar det */ }
+    tegnHero(); tegnFaner(); tegnListe();
+  }
+}
+
 async function etterEndring(id) {
-  try { await lastSaker(); } catch (e) { toast("Endret, men kunne ikke oppdatere lista: " + e.message); }
   tegnHero(); tegnFaner(); tegnListe();
   const sak = finn(id);
   if (sak && S.valgt === id) { tegnSakTopp(sak); tegnBanner(sak); }
+  utsattOppfrisk();
 }
 
 function tegnSak() {
