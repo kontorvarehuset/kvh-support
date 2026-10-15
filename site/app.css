@@ -410,3 +410,6 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 :root[data-innbygd] .hero .dato,:root[data-innbygd] .hero h1,:root[data-innbygd] .hero .under{display:none}
 :root[data-innbygd] .tall button .n{font-size:28px;margin-top:2px}
 :root[data-innbygd] .rad:hover{background:color-mix(in srgb,var(--card) 60%,transparent)}
+
+/* Avkrysningsbokser og glidebrytere i husets oransje, ikke nettleserens blå. */
+input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--primary)}
