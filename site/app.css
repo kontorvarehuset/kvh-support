@@ -372,7 +372,7 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 
 /* ── Statusmerker i margen (forslag A) ─────────────────────────────────────────────────────────── */
 .rad{padding-left:42px}
-.stat{position:absolute;left:11px;top:12px;width:24px;height:24px;display:grid;place-items:center}
+.stat{position:absolute;left:10px;top:12px;width:24px;height:24px;display:grid;place-items:center}
 .stat svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .stat.åpen{color:var(--online)}
 .stat.vent{color:var(--stale)}
