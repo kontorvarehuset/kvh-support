@@ -377,8 +377,9 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 .stat.åpen{color:var(--online)}
 .stat.vent{color:var(--stale)}
 .stat.lukket{color:var(--mist)}
-.stat-prikk{position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--primary);border:2px solid var(--paper)}
-.rad[aria-current="true"] .stat-prikk{border-color:var(--card)}
+/* «Venter på oss»: en liten oransje prikk midt i selve hengelåsen (kroppen står på 11–22 i ikonets 24-rutenett, midten ca. 15,5 px
+   nede i 24 px-boksen). Den lå før i hjørnet og stakk ut forbi ikonet, så låsen og prikken leste som én form som var forskjøvet mot høyre. */
+.stat-prikk{position:absolute;left:9px;top:12.5px;width:6px;height:6px;border-radius:50%;background:var(--primary)}
 .skille{display:flex;align-items:center;gap:10px;padding:10px 12px 6px;color:var(--mist);font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase}
 .skille::after{content:"";flex:1;height:1px;background:var(--hairline)}
 .vis-vent{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;color:var(--graphite);cursor:pointer;padding:0 2px}
