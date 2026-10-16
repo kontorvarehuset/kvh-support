@@ -626,5 +626,7 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 
 /* Skillet mellom åpne saker og saker på vent (når «Vis også saker på vent» er på): husets oransje, en linje som dekker ca. 80 %
    av bredden og tones ut mot høyre, så det leses som en overgang og ikke som en ny liste. */
-.skille{color:var(--primary-deep);padding:14px 20% 8px 12px}
-.skille::after{height:1.5px;background:linear-gradient(to right,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
+.skille{color:var(--primary-deep);padding:14px 10% 8px}
+.skille::before,.skille::after{content:"";flex:1;height:1.5px}
+.skille::before{background:linear-gradient(to left,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
+.skille::after{background:linear-gradient(to right,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
