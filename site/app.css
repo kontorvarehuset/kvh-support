@@ -595,3 +595,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .tråd{scrollbar-gutter:stable both-edges}
 .skriv-rot .skriv-inn{margin-left:48px}
 @media (max-width:860px){.skriv-rot .skriv-inn{margin-left:0}}
+
+/* Samme avrunding på meldingsboblene og skriveboksen (16 px). Kundens bobler hadde en 4 px grå kant til venstre som i
+   en rundet boks ble en halvmåne som så ut som en skygge: kunden får vanlig tynn kant, og det er bare våre svar
+   (oransje) og notater (stiplet gul) som har sidekant, så «hvem skriver» leses av kanten og avataren. */
+.boble{border-radius:16px}
+.skriv-inn{border-radius:16px}
+.mld.kunde .boble{border-left-width:1px;border-left-color:var(--hairline)}
