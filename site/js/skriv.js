@@ -128,7 +128,7 @@ export function monter(rot, ctx) {
   skrivEl.addEventListener("focusout", (e) => {
     const til = e.relatedTarget;
     if (til && skrivEl.contains(til)) return;
-    if (felt.textContent.trim() === "" && !felt.querySelector("img") && !$("#cc-inn").value && u.cc.length === 0) skrivEl.classList.remove("utvidet");
+    if ((erTomt() || bareHilsen()) && !$("#cc-inn").value && u.cc.length === 0) { if (bareHilsen() && !alltidApen) { felt.innerHTML = ""; lagre(); } skrivEl.classList.remove("utvidet"); }
   });
 
   /* Signaturen hentes fra Zammad når skriveflata åpnes. Mangler den, vises ingenting. */
@@ -170,6 +170,32 @@ export function monter(rot, ctx) {
   const lagre = () => { u.html = felt.innerHTML; };
   felt.addEventListener("input", lagre);
 
+  /* Zammad-makroen «Hei Fornavn Etternavn,» som alle svar begynner med. Den settes inn når man begynner å skrive
+     et svar i et tomt felt (ikke ved åpning av saken: på telefon betyr et ikke-tomt felt at skriveflata står utvidet,
+     og et notat skal ikke ha hilsen). En hilsen uten noe etter seg regnes som tomt, så den hverken hindrer at feltet
+     folder seg sammen eller lar «Send» slippe gjennom. Står det ikke et navn (bare en adresse), blir det «Hei,». */
+  const navn = (sak.fra || "").trim();
+  const hilsen = navn && !navn.includes("@") ? `Hei ${navn},` : "Hei,";
+  const erTomt = () => felt.textContent.trim() === "" && !felt.querySelector("img");
+  const bareHilsen = () => felt.textContent.trim() === hilsen && !felt.querySelector("img");
+  const markorSist = () => {
+    const r = document.createRange(); r.selectNodeContents(felt); r.collapse(false);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+  const settHilsen = (flyttMarkor = true) => {
+    if (u.modus !== "svar" || !erTomt()) return;
+    felt.innerHTML = "";
+    felt.append(hilsen, document.createElement("br"), document.createElement("br"));
+    if (flyttMarkor) markorSist();
+    lagre();
+  };
+  /* Skriveflata står alltid åpen over 860 px: der er hilsenen ferdig satt inn og signaturen synlig under feltet, så
+     man ser hvordan svaret blir. Hilsenen settes uten å ta fokus (siden tegnes på nytt mens man søker, og fokus
+     ville ellers hoppet fra søkefeltet), og tekstmarkøren legges på linja under den når man klikker i feltet. */
+  const alltidApen = window.matchMedia("(min-width:861px)").matches;
+  felt.addEventListener("focus", () => { if (erTomt()) settHilsen(); else if (bareHilsen()) markorSist(); });
+  if (alltidApen) { sigRad.classList.add("apen"); settHilsen(false); }
+
   /* Innliming: bilder blir bilder, alt annet blir ren tekst (ingen skjult formatering fra Word eller e-post). */
   const settInnBilde = (src) => {
     felt.focus();
@@ -199,7 +225,7 @@ export function monter(rot, ctx) {
 
   rot.querySelector(".modus").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    u.modus = b.dataset.m; oppdater(); felt.focus();
+    u.modus = b.dataset.m; oppdater(); if (u.modus === "svar" && alltidApen) settHilsen(false); felt.focus();
   });
 
   /* Cc: Enter, komma eller semikolon legger til. Backspace i tomt felt fjerner den siste. */
@@ -222,7 +248,7 @@ export function monter(rot, ctx) {
     if (kunSperret) return ctx.toast(`Sperret i prøvemodus: kan bare sende på #${SPERRE_TIL}.`);
     if (u.modus === "svar" && !leggTilCc()) return;
     const { html, tomt } = tilHtml(felt);
-    if (tomt) return ctx.toast("Skriv noe først.");
+    if (tomt || (u.modus === "svar" && bareHilsen())) return ctx.toast("Skriv noe først.");
     const notat = u.modus === "notat";
     if (!notat && !gyldig(sak.epost || "")) return ctx.toast("Saken mangler en gyldig e-postadresse til kunden.");
     /* Hodet bæres av FORMEN på forespørselen: notat = type note + internal, svar = type email + ikke internal. */
