@@ -588,3 +588,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   :root:not([data-innbygd]) .skriv .felt{min-height:clamp(112px,16vh,200px);max-height:40vh}
   :root:not([data-innbygd]) .skriv-inn{max-height:min(70vh,640px)}
 }
+
+/* Skriveflata og meldingene har samme kanter. Boblene starter etter avataren (36 px + 12 px mellomrom), så skriveboksen
+   rykkes inn like mye. Rullefeltet tok plass bare på samtalens høyre side og skjøv meldingene ca. 7 px mot venstre i forhold
+   til skriveboksen: med stabile marger på begge sider (scrollbar-gutter) står begge sentrert på samme midtlinje. */
+.tråd{scrollbar-gutter:stable both-edges}
+.skriv-rot .skriv-inn{margin-left:48px}
+@media (max-width:860px){.skriv-rot .skriv-inn{margin-left:0}}
