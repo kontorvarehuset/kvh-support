@@ -481,7 +481,7 @@ async function tegnSakSide(sak) {
   const tegnListe2 = (l) => {
     const andre = l.filter((x) => x.id !== sak.id).slice(0, 3);
     return kundeKort + `<h4>${fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom)}</h4>` + (andre.length
-      ? andre.map((x) => `<a class="andre-sak" data-id="${x.id}" data-nokkel="${esc(nokkel)}" href="/#ticket/zoom/${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
+      ? andre.map((x) => `<a class="andre-sak" data-id="${x.id}" data-nokkel="${esc(nokkel)}" href="/kvhui/#sak-${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
       : '<div class="kunde-u">Ingen andre saker.</div>');
   };
   if (!nokkel) { rot.innerHTML = kundeKort; return; }
@@ -934,6 +934,33 @@ async function visVersjon() {
   } catch { /* uten versjonslinje */ }
 }
 
+/* Dyplenke: /kvhui/#sak-123 åpner sak 123 (ctrl-klikk på «Siste saker» i panelet, og en lenke man kan sende til en kollega).
+   Står saken i listene, velges den der; ellers hentes den og vises alene som et søketreff. */
+async function apneFraHash() {
+  const m = /^#sak-(\d+)$/.exec(location.hash); if (!m) return;
+  const id = Number(m[1]);
+  history.replaceState(null, "", location.pathname + location.search);
+  let sak = finn(id);
+  if (!sak) {
+    try {
+      let res = await hent(`/tickets/${id}?all=true`);
+      if (!res.assets) res = await sok(`id:${id}`, 1);
+      for (const [i, b] of brukereFra(res)) S.brukere.set(i, b);
+      sak = byggSaker({ assets: res.assets, record_ids: [id] })[0];
+    } catch (e) {
+      if (e instanceof IkkeInnlogget) return visInnlogging();
+    }
+    if (!sak) return toast(`Fant ikke sak ${id}.`);
+    S.sokSeq++;
+    S.treff = { q: "#" + sak.nummer, liste: [sak], total: 1, laster: false };
+    S.filter = ""; const sk = $("#sok"); if (sk) sk.value = "";
+  } else if (!S.treff && !synlige().some((x) => x.id === id)) {
+    S.fane = sak.status === "lukket" ? "lukket" : sak.status === "vent" ? "vent" : "åpen";
+    S.spesial = null;
+  }
+  S.valgt = id; helhet(); velgSak(id);
+}
+
 export async function start() {
   koble();
   visVersjon();
@@ -957,6 +984,8 @@ export async function start() {
   S.valgt = forsteSakId(lista);
   helhet();
   if (S.valgt) velgSak(S.valgt, true);
+  apneFraHash();
+  window.addEventListener("hashchange", apneFraHash);
   setInterval(oppfrisk, 60_000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) oppfrisk(); });
 }
