@@ -573,6 +573,8 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   :root:not([data-innbygd]) .tall button .n{order:2;font-size:28px;margin-top:0}
   :root:not([data-innbygd]) .tall button .u{display:none}
   :root:not([data-innbygd]) .tall button[aria-pressed="true"] .e::after{content:none}
-  :root:not([data-innbygd]) .saktopp{padding:14px 28px 12px}
+  :root:not([data-innbygd]) .saktopp{padding:12px 28px 10px;align-items:center}
+  :root:not([data-innbygd]) .saktopp .meta{margin:2px 0 0;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block}
+  :root:not([data-innbygd]) .saktopp .meta span{margin-right:8px}
   :root:not([data-innbygd]) .saktopp h2{font-size:20px}
 }

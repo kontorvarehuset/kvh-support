@@ -426,7 +426,8 @@ function eierKnapp(sak) {
     </div>`;
 }
 
-/* Bred skjerm: valgene (eier, vent, lukk) flyttes til et panel på høyre side, så samtalen får hele høyden.
+/* Bred skjerm: sakshodet er to linjer (tittel, så nummer · kunde · avsender), ikke tre, så raden blir lav og
+   panelets knapper fyller den. Valgene (eier, vent, lukk) flyttes til et panel på høyre side, så samtalen får hele høyden.
    Innbygd (RMM-vinduet) er alltid smalt og beholder knappene i sakshodet. */
 const BRED = window.matchMedia("(min-width:1200px)");
 const bredModus = () => !INNBYGD && BRED.matches;
@@ -450,10 +451,12 @@ function tegnSakTopp(sak) {
   const brede = bredModus();
   rot.innerHTML = `
       <button class="tilbake" data-a="tilbake">‹ Saker</button>
-      <div class="tekst">
+      <div class="tekst">${brede ? `
+        <h2>${esc(sak.emne)}</h2>
+        <div class="meta"><span class="mono">#${esc(sak.nummer)}</span><span>·</span><span>${esc(sak.kunde)}</span><span>·</span><span>${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</span></div>` : `
         <div class="meta"><span class="mono">#${esc(sak.nummer)}</span><span>·</span><span>${esc(sak.kunde)}</span></div>
         <h2>${esc(sak.emne)}</h2>
-        <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
+        <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>`}
       </div>
       ${brede ? "" : `<div class="handlinger">${handlingerHtml(sak, false)}</div>`}`;
   const topp = $("#sak-panel-handl"), rest = $("#sak-panel-rest");
