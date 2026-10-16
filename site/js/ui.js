@@ -438,8 +438,8 @@ function handlingerHtml(sak, brede) {
   const lukket = sak.status === "lukket";
   const eier = eierKnapp(sak), vent = ventKnapp(sak);
   const lukkKnapper = lukket
-    ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>'
-    : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`;
+    ? '<button class="knapp oransje" data-a="aapne">Gjenåpne</button>'
+    : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp oransje" data-a="lukk">Lukk saken</button>`;
   const zammad = `<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad" aria-label="Åpne saken i Zammad"><span class="zt">Zammad </span>↗</a>`;
   /* I panelet får hver nedtrekksmeny sin egen ramme, så menyen åpnes under sin egen knapp og ikke under hele stabelen. */
   if (brede) return { topp: `<div class="pf eier">${eier}</div>${vent ? `<div class="pf vent">${vent}</div>` : ""}`, rest: `${lukkKnapper}${zammad}` };
