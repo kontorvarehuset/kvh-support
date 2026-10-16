@@ -630,3 +630,9 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .skille::before,.skille::after{content:"";flex:1;height:1.5px}
 .skille::before{background:linear-gradient(to left,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
 .skille::after{background:linear-gradient(to right,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
+
+/* Saklista: kunden er en liten stor-bokstavet etikett i oransje over emnet (forslag B), og emnet er fet og kan ta to linjer.
+   Med dagens oppsett hadde kunde og emne samme størrelse, så et langt emne kuttet seg selv og kunden druknet i teksten. */
+.rad .l1{margin-bottom:1px}
+.rad .kunde{font:600 10.5px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--primary-deep)}
+.rad .emne{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;white-space:normal;overflow:hidden;font-weight:600;line-height:1.3}

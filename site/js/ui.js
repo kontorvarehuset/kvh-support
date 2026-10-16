@@ -273,7 +273,7 @@ function tegnListe() {
     return skille + `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
       ${statusMerke(x)}${eierPrikk}
       <span class="l1"><span class="kunde">${esc(x.kunde)}</span><span class="tid">${esc(kortTid(x.sist))}</span></span>
-      <span class="emne" style="display:block">${esc(x.emne)}</span>
+      <span class="emne">${esc(x.emne)}</span>
       <span class="utdrag" style="display:block">${esc(x.fra)} · #${esc(x.nummer)} · ${x.antall} ${x.antall === 1 ? "melding" : "meldinger"}</span>
       ${m.length ? `<span class="merker">${m.join("")}</span>` : ""}
     </button>`;
