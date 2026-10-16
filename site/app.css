@@ -564,7 +564,8 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 
   /* Slankt tallbånd: hilsen og fire tall på én linje, med luft over og under. */
   :root:not([data-innbygd]) .hero{grid-template-columns:minmax(220px,1fr) minmax(0,3fr);align-items:center;gap:0 28px;padding:14px 28px}
-  :root:not([data-innbygd]) .hero .dato,:root:not([data-innbygd]) .hero .under{display:none}
+  :root:not([data-innbygd]) .hero .under{display:none}
+  :root:not([data-innbygd]) .hero .dato{display:block;margin-bottom:2px}
   :root:not([data-innbygd]) .hero h1{font-size:24px}
   :root:not([data-innbygd]) .tall button{flex-direction:row;align-items:baseline;gap:10px;padding:8px 18px}
   :root:not([data-innbygd]) .tall button:first-child{padding-left:0}
