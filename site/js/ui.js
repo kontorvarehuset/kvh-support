@@ -13,7 +13,7 @@
 import { hent, put, IkkeInnlogget } from "./api.js";
 import {
   STATUSNAVN_APNE, INGEN_EIER, bildeUrl, beregnStatus, sokeSporring, byggSaker, brukereFra, byggArtikkel, navnPaa, initialer,
-  kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra,
+  kortTid, langTid, ventTekst, skillSitat, erBilde, storrelseTekst, navnFraFra, escES,
 } from "./modell.js";
 import { rens } from "./rens.js";
 import { monter, planleggSending, SPERRE_TIL } from "./skriv.js";
@@ -426,8 +426,28 @@ function eierKnapp(sak) {
     </div>`;
 }
 
+/* Bred skjerm: valgene (eier, vent, lukk) flyttes til et panel på høyre side, så samtalen får hele høyden.
+   Innbygd (RMM-vinduet) er alltid smalt og beholder knappene i sakshodet. */
+const BRED = window.matchMedia("(min-width:1200px)");
+const bredModus = () => !INNBYGD && BRED.matches;
+/* Over og under 1200 px bytter handlingene plass (panel eller sakshode), så saken tegnes på nytt. */
+BRED.addEventListener("change", () => { if (S.valgt) tegnSak(); });
+
+function handlingerHtml(sak, brede) {
+  const lukket = sak.status === "lukket";
+  const eier = eierKnapp(sak), vent = ventKnapp(sak);
+  const lukkKnapper = lukket
+    ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>'
+    : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`;
+  const zammad = `<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad" aria-label="Åpne saken i Zammad"><span class="zt">Zammad </span>↗</a>`;
+  /* I panelet får hver nedtrekksmeny sin egen ramme, så menyen åpnes under sin egen knapp og ikke under hele stabelen. */
+  if (brede) return `<h4>Sak</h4><div class="pf">${eier}</div>${vent ? `<div class="pf">${vent}</div>` : ""}<h4>Handlinger</h4>${lukkKnapper}${zammad}`;
+  return `${eier}${vent}${lukkKnapper}${zammad}`;
+}
+
 function tegnSakTopp(sak) {
   const rot = $("#sak-topp"); if (!rot) return;
+  const brede = bredModus();
   rot.innerHTML = `
       <button class="tilbake" data-a="tilbake">‹ Saker</button>
       <div class="tekst">
@@ -435,7 +455,43 @@ function tegnSakTopp(sak) {
         <h2>${esc(sak.emne)}</h2>
         <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
       </div>
-      <div class="handlinger">${eierKnapp(sak)}${ventKnapp(sak)}${sak.status === "lukket" ? '<button class="knapp primær" data-a="aapne">Gjenåpne</button>' : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`}<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad" aria-label="Åpne saken i Zammad"><span class="zt">Zammad </span>↗</a></div>`;
+      ${brede ? "" : `<div class="handlinger">${handlingerHtml(sak, false)}</div>`}`;
+  const panel = $("#sak-panel-handl");
+  if (panel) panel.innerHTML = brede ? handlingerHtml(sak, true) : "";
+}
+
+/* Kunden og de nyeste sakene fra samme domene. Fri-e-post (gmail osv.) deler ikke domene med noen
+   vi kjenner, så der søker vi på selve adressen. Zammads indeks kan dele opp adressen i biter, så vi
+   spør bredt og kontrollerer domenet selv etterpå. */
+const FRIE_DOMENER = new Set(["gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.no", "live.com", "live.no", "online.no", "icloud.com", "me.com", "yahoo.com", "yahoo.no", "msn.com", "proton.me", "protonmail.com", "tele2.no", "getmail.no", "start.no"]);
+const sisteCache = new Map();
+async function tegnSakSide(sak) {
+  const rot = $("#sak-side"); if (!rot) return;
+  const adr = (sak.epost || "").toLowerCase();
+  const dom = adr.includes("@") ? adr.split("@")[1] : "";
+  const fri = !dom || FRIE_DOMENER.has(dom);
+  const nokkel = fri ? adr : dom;
+  const kundeKort = `<h4>Kunde</h4><div class="kunde-n">${esc(sak.fra)}</div><div class="kunde-u">${esc(sak.kunde)}${sak.epost ? "<br>" + esc(sak.epost) : ""}</div>`;
+  const tegnListe2 = (l) => {
+    const andre = l.filter((x) => x.id !== sak.id).slice(0, 3);
+    return kundeKort + `<h4>${fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom)}</h4>` + (andre.length
+      ? andre.map((x) => `<a class="andre-sak" href="/#ticket/zoom/${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
+      : '<div class="kunde-u">Ingen andre saker.</div>');
+  };
+  if (!nokkel) { rot.innerHTML = kundeKort; return; }
+  if (sisteCache.has(nokkel)) { rot.innerHTML = tegnListe2(sisteCache.get(nokkel)); return; }
+  rot.innerHTML = kundeKort + '<h4>Siste saker</h4><div class="kunde-u">Henter …</div>';
+  try {
+    const q = fri ? `customer.email:"${escES(adr)}"` : `(customer.email:"${escES(dom)}" OR customer.email:*@${escES(dom)})`;
+    const res = await sok(q, 15);
+    const liste = byggSaker(res).filter((x) => fri ? x.epost.toLowerCase() === adr : x.epost.toLowerCase().endsWith("@" + dom));
+    liste.sort((a, b) => (b.sist || 0) - (a.sist || 0));
+    sisteCache.set(nokkel, liste);
+    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = tegnListe2(liste);
+  } catch (e) {
+    if (e instanceof IkkeInnlogget) return;
+    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = kundeKort + '<h4>Siste saker</h4><div class="kunde-u">Kunne ikke hentes.</div>';
+  }
 }
 
 function tegnBanner(sak) {
@@ -599,13 +655,17 @@ function tegnSak() {
   const sak = S.valgt ? finn(S.valgt) : null;
   if (!sak) { $("#sak").innerHTML = `<div class="tomt" style="margin:auto"><div class="w">Velg en sak</div>Saken åpnes her.</div>`; return; }
   $("#sak").innerHTML = `
-    <div class="saktopp" id="sak-topp"></div>
-    <div class="tråd" id="tråd"><div class="tråd-inn">
-      <div id="sak-banner"></div>
-      <div id="art-rot"></div>
-    </div></div>
-    <div id="skriv-rot" class="skriv-rot"></div>`;
+    <div class="sak-kol">
+      <div class="saktopp" id="sak-topp"></div>
+      <div class="tråd" id="tråd"><div class="tråd-inn">
+        <div id="sak-banner"></div>
+        <div id="art-rot"></div>
+      </div></div>
+      <div id="skriv-rot" class="skriv-rot"></div>
+    </div>
+    <aside class="sak-panel" aria-label="Valg for saken"><div class="handlinger pan-handl" id="sak-panel-handl"></div><div class="pan-side" id="sak-side"></div></aside>`;
   tegnSakTopp(sak);
+  if (bredModus()) tegnSakSide(sak);
   tegnBanner(sak);
   tegnArtikkelRot(sak);
   monterSkriveflate(sak);
