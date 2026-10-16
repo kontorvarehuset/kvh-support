@@ -535,8 +535,8 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 @media (min-width:1200px){
   :root:not([data-innbygd]) .sak{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:auto minmax(0,1fr) auto}
   :root:not([data-innbygd]) .sak-kol{display:contents}
-  :root:not([data-innbygd]) .sak-panel{display:block;grid-column:2;grid-row:1 / 4;overflow-y:auto;border-left:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 60%,var(--card))}
-  :root:not([data-innbygd]) .saktopp{grid-column:1;grid-row:1}
+  :root:not([data-innbygd]) .sak-panel{display:block;grid-column:2;grid-row:2 / 4;overflow-y:auto;border-left:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 60%,var(--card))}
+  :root:not([data-innbygd]) .saktopp{grid-column:1 / -1;grid-row:1}
   :root:not([data-innbygd]) .tråd{grid-column:1;grid-row:2}
   :root:not([data-innbygd]) .skriv-rot{grid-column:1;grid-row:3}
   :root:not([data-innbygd]) .pan-handl{display:flex;gap:8px;align-items:center;padding:14px 16px 8px;min-width:0}
