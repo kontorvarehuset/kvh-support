@@ -204,6 +204,8 @@ function tegnHero() {
 }
 
 function tegnFaner() {
+  /* Krysset i søkefeltet står der så lenge det finnes noe å nullstille: tekst i feltet, et søketreff eller et tallfilter (uten eier, over et døgn). */
+  const sx = $("#sok-x"); if (sx) sx.hidden = !(S.filter || S.treff || S.spesial);
   const n = (s) => S.saker.filter((x) => x.status === s).length;
   const F = [["åpen", "Åpne", n("åpen") + (S.visVent ? `<span class="pluss">+${n("vent")}</span>` : "")], ["vent", "På vent", n("vent")], ["lukket", "Lukket", S.lukkede ? S.lukkede.length : null]];
   $("#faner").innerHTML = F.map(([k, nn, t]) =>
@@ -472,6 +474,8 @@ function tegnSakTopp(sak) {
 const FRIE_DOMENER = new Set(["gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.no", "live.com", "live.no", "online.no", "icloud.com", "me.com", "yahoo.com", "yahoo.no", "msn.com", "proton.me", "protonmail.com", "tele2.no", "getmail.no", "start.no"]);
 const sisteCache = new Map();
 const IK_POST = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+const IK_KOPI = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+const IK_HAKE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 const IK_TLF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
 async function tegnSakSide(sak) {
   const rot = $("#sak-side"); if (!rot) return;
@@ -482,7 +486,7 @@ async function tegnSakSide(sak) {
   /* Kundekort: avatar (bilde hvis Zammad har det), navn, firma som pille og kontaktlinjer med ikon. */
   const org = sak.kunde && sak.kunde !== sak.fra ? sak.kunde : "";
   const kundeKort = `<div class="kk"><span class="mini-av kk-av">${avatarInnhold(sak.fra, bildeId(sak.kundeId))}</span><div><div class="kk-n">${esc(sak.fra)}</div>${org ? `<span class="kk-org">${esc(org)}</span>` : ""}</div></div>
-    <div class="kk-kont">${sak.epost ? `<span>${IK_POST}${esc(sak.epost)}</span>` : ""}${sak.tlf ? `<span>${IK_TLF}<a href="tel:${esc(sak.tlf.replace(/[^+\d]/g, ""))}">${esc(sak.tlf)}</a></span>` : ""}</div>`;
+    <div class="kk-kont">${sak.epost ? `<span>${IK_POST}<span class="kk-adr">${esc(sak.epost)}</span><button type="button" class="kopi" data-kopi="${esc(sak.epost)}" title="Kopier e-postadressen" aria-label="Kopier e-postadressen">${IK_KOPI}</button></span>` : ""}${sak.tlf ? `<span>${IK_TLF}<a href="tel:${esc(sak.tlf.replace(/[^+\d]/g, ""))}">${esc(sak.tlf)}</a></span>` : ""}</div>`;
   const overskrift = fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom);
   const tegnListe2 = (c) => {
     const andre = c.liste.filter((x) => x.id !== sak.id).slice(0, 3);
@@ -525,7 +529,7 @@ function ventValg() {
   const tilMandag = ((8 - new Date().getDay()) % 7) || 7;
   if (tilMandag > 1) val.push({ navn: "Mandag", d: kl8(tilMandag), stat: 3 });
   val.push({ navn: "Om en uke", d: kl8(7), stat: 3 });
-  val.push({ navn: "Venter på kunde", d: kl8(7), stat: 7, merke: "tas opp om 7 dager" });
+  val.push({ navn: "Venter på kunde", d: kl8(7), stat: 7, merke: "om 7 dager" });
   return val;
 }
 
@@ -806,6 +810,7 @@ function koble() {
     if (S.filter.trim().length < 3) { kjorSok(); if (!S.treff) tegnListe(); return; }
     sokTid = setTimeout(kjorSok, 400);
   });
+  $("#sok-x").addEventListener("click", () => { clearTimeout(sokTid); S.spesial = null; nullstillSok(); $("#sok").focus(); });
   $("#sok").addEventListener("keydown", (e) => { if (e.key === "Enter") { clearTimeout(sokTid); kjorSok(); } });
   try { S.visVent = localStorage.getItem("kvhui-vis-vent") === "1"; } catch { S.visVent = false; }
   $("#vis-vent").addEventListener("change", (e) => {
@@ -826,6 +831,15 @@ function koble() {
   /* «Siste saker» i panelet åpner saken HER, ikke i Zammad: lista blir sakene fra samme domene (som et søk), med den
      valgte markert, og «Nullstill søk» tar deg tilbake. Ctrl/⌘-klikk og midtklikk åpner fortsatt Zammad i ny fane. */
   $("#sak").addEventListener("click", (e) => {
+    const kb = e.target.closest(".kopi");
+    if (kb) {
+      /* Clipboard-API-et krever sikker kontekst og fokus; reserveløsningen er et skjult tekstfelt og execCommand. */
+      const tekst = kb.dataset.kopi;
+      const ferdig = () => { kb.innerHTML = IK_HAKE; kb.classList.add("kopiert"); toast("E-postadressen er kopiert"); setTimeout(() => { kb.innerHTML = IK_KOPI; kb.classList.remove("kopiert"); }, 1600); };
+      const reserve = () => { const t = document.createElement("textarea"); t.value = tekst; t.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand("copy"); } catch { /* ingen tilgang */ } t.remove(); ok ? ferdig() : toast("Kunne ikke kopiere. Marker adressen og kopier selv."); };
+      (navigator.clipboard ? navigator.clipboard.writeText(tekst).then(ferdig, reserve) : reserve());
+      return;
+    }
     const alleLenke = e.target.closest(".mer-lenke");
     const l = alleLenke || e.target.closest(".andre-sak"); if (!l || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
     const c = sisteCache.get(l.dataset.nokkel); const liste = c && c.liste;

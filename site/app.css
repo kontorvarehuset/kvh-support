@@ -665,3 +665,24 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .tidslinje .u{color:var(--mist);font-size:12px;padding:0}
 .mer-lenke{display:inline-block;margin-top:12px;font-size:12.5px;font-weight:600;color:var(--primary-deep);text-decoration:none}
 .mer-lenke:hover{text-decoration:underline}
+
+/* Kryss i søkefeltet (nullstiller søk og tallfilter). Nettleserens eget kryss i type=search skjules, så det ikke blir to. */
+.sok-boks{position:relative}
+.sok-boks .sok{padding-right:34px}
+.sok::-webkit-search-cancel-button,.sok::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+.sok-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:0;background:var(--sand);color:var(--graphite);cursor:pointer;display:grid;place-items:center;padding:0}
+.sok-x[hidden]{display:none}
+.sok-x:hover{background:var(--primary-tint);color:var(--primary-deep)}
+.sok-x:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+/* Kopier-knapp ved e-postadressen i kundekortet. */
+.kk-kont .kk-adr{min-width:0}
+.kk-kont .kopi{margin-left:auto;flex:none;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--mist);cursor:pointer;display:grid;place-items:center;padding:0}
+.kk-kont .kopi svg{width:15px;height:15px;stroke:currentColor;fill:none}
+.kk-kont .kopi:hover{background:var(--sand);color:var(--ink)}
+.kk-kont .kopi.kopiert{color:var(--online)}
+.kk-kont .kopi:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+/* «På vent»-menyen: etikett og merke på hver sin side uten linjeskift (merket «tas opp om 7 dager» brøt over to linjer og kolliderte med etiketten). */
+.meny-pop button span:first-child{white-space:nowrap}
+.meny-pop button span:last-child{white-space:nowrap;text-align:right}
