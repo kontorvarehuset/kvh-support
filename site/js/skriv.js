@@ -119,6 +119,9 @@ export function monter(rot, ctx) {
 
   const $ = (s) => rot.querySelector(s);
   const felt = $("#felt");
+  /* Over 860 px står skriveflata alltid åpen, og da ligger signaturen som vanlig tekst i selve feltet (kan redigeres
+     og fjernes), ikke som en egen blokk under. Under 860 px legges den til automatisk ved sending, som før. */
+  const alltidApen = window.matchMedia("(min-width:861px)").matches;
   felt.innerHTML = u.html;
 
   /* Smale skjermer: skriveflata er en «Svar»-knapp til man trykker, og folder seg sammen igjen når den er tom og forlatt. */
@@ -152,7 +155,7 @@ export function monter(rot, ctx) {
     $("#send").textContent = notat ? "Lagre notat" : "Send svar";
     $("#ccrad").hidden = notat;
     $("#send-lukk").hidden = notat;
-    $("#sig-rad").hidden = notat || !sigHtml;
+    $("#sig-rad").hidden = notat || !sigHtml || alltidApen;
     $("#hint").textContent = "Lim inn eller dra skjermbilder rett i meldingen · ⌘↵ sender";
     rot.querySelectorAll(".modus button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === u.modus)));
     $("#cc-chips").innerHTML = u.cc.map((e, i) => `<span class="cc-chip">${esc(e)}<button type="button" data-cc="${i}" aria-label="Fjern ${esc(e)}">×</button></span>`).join(" ");
@@ -161,6 +164,8 @@ export function monter(rot, ctx) {
   if (ctx.signatur) {
     ctx.signatur().then((h) => {
       sigHtml = h || "";
+      /* Signaturen kommer etter at feltet er tegnet: legg den inn nå hvis feltet fortsatt bare har hilsenen. */
+      if (alltidApen && u.modus === "svar" && bareHilsen() && !felt.querySelector("[data-sig]")) { felt.insertAdjacentHTML("beforeend", sigBlokk()); lagre(); }
       $("#sig-visning").innerHTML = sigHtml ? `<span class="sig-kort"></span><span class="sig-full">${sigHtml}</span>` : "";
       const kort = $("#sig-visning").querySelector(".sig-kort"); if (kort) kort.textContent = kompaktSignatur(sigHtml);
       oppdater();
@@ -176,25 +181,33 @@ export function monter(rot, ctx) {
      folder seg sammen eller lar «Send» slippe gjennom. Står det ikke et navn (bare en adresse), blir det «Hei,». */
   const navn = (sak.fra || "").trim();
   const hilsen = navn && !navn.includes("@") ? `Hei ${navn},` : "Hei,";
-  const erTomt = () => felt.textContent.trim() === "" && !felt.querySelector("img");
-  const bareHilsen = () => felt.textContent.trim() === hilsen && !felt.querySelector("img");
+  /* «Innholdet» er det man selv har skrevet: signaturblokken (data-sig) regnes ikke med, så en hilsen med signatur
+     under fortsatt er et tomt svar. */
+  const utenSig = () => { const k = felt.cloneNode(true); k.querySelectorAll("[data-sig]").forEach((n) => n.remove()); return k; };
+  const erTomt = () => { const k = utenSig(); return k.textContent.trim() === "" && !k.querySelector("img"); };
+  const bareHilsen = () => { const k = utenSig(); return k.textContent.trim() === hilsen && !k.querySelector("img"); };
+  const sigBlokk = () => (alltidApen && sigHtml ? `<div data-sig="1" class="sig-inline"><br>${sigHtml}</div>` : "");
+  /* Markøren står på linja under hilsenen, rett over signaturen. */
   const markorSist = () => {
-    const r = document.createRange(); r.selectNodeContents(felt); r.collapse(false);
+    const r = document.createRange(); const sig = felt.querySelector("[data-sig]");
+    if (sig) r.setStartBefore(sig); else r.selectNodeContents(felt);
+    r.collapse(!sig ? false : true);
     const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
   };
   const settHilsen = (flyttMarkor = true) => {
     if (u.modus !== "svar" || !erTomt()) return;
     felt.innerHTML = "";
     felt.append(hilsen, document.createElement("br"), document.createElement("br"));
+    felt.insertAdjacentHTML("beforeend", sigBlokk());
     if (flyttMarkor) markorSist();
     lagre();
   };
-  /* Skriveflata står alltid åpen over 860 px: der er hilsenen ferdig satt inn og signaturen synlig under feltet, så
-     man ser hvordan svaret blir. Hilsenen settes uten å ta fokus (siden tegnes på nytt mens man søker, og fokus
-     ville ellers hoppet fra søkefeltet), og tekstmarkøren legges på linja under den når man klikker i feltet. */
-  const alltidApen = window.matchMedia("(min-width:861px)").matches;
+  /* Skriveflata står alltid åpen over 860 px: der er hilsenen ferdig satt inn og signaturen ligger som vanlig tekst
+     under, så man ser hvordan svaret blir og kan fjerne den. Hilsenen settes uten å ta fokus (siden tegnes på nytt
+     mens man søker, og fokus ville ellers hoppet fra søkefeltet), og markøren legges på linja under hilsenen når man
+     klikker i feltet. */
   felt.addEventListener("focus", () => { if (erTomt()) settHilsen(); else if (bareHilsen()) markorSist(); });
-  if (alltidApen) { sigRad.classList.add("apen"); settHilsen(false); }
+  if (alltidApen) settHilsen(false);
 
   /* Innliming: bilder blir bilder, alt annet blir ren tekst (ingen skjult formatering fra Word eller e-post). */
   const settInnBilde = (src) => {
@@ -225,7 +238,7 @@ export function monter(rot, ctx) {
 
   rot.querySelector(".modus").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    u.modus = b.dataset.m; oppdater(); if (u.modus === "svar" && alltidApen) settHilsen(false); felt.focus();
+    if (alltidApen && (erTomt() || bareHilsen())) felt.innerHTML = ""; u.modus = b.dataset.m; oppdater(); if (u.modus === "svar" && alltidApen) settHilsen(false); felt.focus();
   });
 
   /* Cc: Enter, komma eller semikolon legger til. Backspace i tomt felt fjerner den siste. */
@@ -243,11 +256,14 @@ export function monter(rot, ctx) {
   ci.addEventListener("blur", leggTilCc);
   $("#cc-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-cc]"); if (b) { u.cc.splice(Number(b.dataset.cc), 1); oppdater(); } });
 
+  /* Signaturen slik den står i feltet nå (kan være redigert eller fjernet). Hentes som HTML, så formateringen fra Zammad følger med. */
+  const sigFraFelt = () => { const e = felt.querySelector("[data-sig]"); return e && e.textContent.trim() ? "<br>" + e.innerHTML.replace(/^(<br>)+/, "") : ""; };
+
   /* Sending. */
   const send = (lukkEtterpaa = false) => {
     if (kunSperret) return ctx.toast(`Sperret i prøvemodus: kan bare sende på #${SPERRE_TIL}.`);
     if (u.modus === "svar" && !leggTilCc()) return;
-    const { html, tomt } = tilHtml(felt);
+    const { html, tomt } = tilHtml(utenSig());
     if (tomt || (u.modus === "svar" && bareHilsen())) return ctx.toast("Skriv noe først.");
     const notat = u.modus === "notat";
     if (!notat && !gyldig(sak.epost || "")) return ctx.toast("Saken mangler en gyldig e-postadresse til kunden.");
@@ -259,7 +275,7 @@ export function monter(rot, ctx) {
       sender: "Agent",
       content_type: "text/html",
       /* Signaturen legges til på slutten, bare på svar til kunde og bare hvis den er på. */
-      body: html + (!notat && sigHtml && sigPa.checked ? "<br>" + sigHtml : ""),
+      body: html + (notat ? "" : alltidApen ? sigFraFelt() : sigHtml && sigPa.checked ? "<br>" + sigHtml : ""),
       subject: sak.emne,
     };
     if (!notat) { kropp.to = sak.epost; if (u.cc.length) kropp.cc = u.cc.join(", "); }

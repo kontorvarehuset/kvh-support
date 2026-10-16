@@ -20,3 +20,27 @@ assert.equal(r.tomt, true, "bare luft er tomt");
 r = tilHtml(lag('Tekst med "sitat" og <tegn>'));
 assert.match(r.html, /&quot;sitat&quot;/); assert.equal(SPERRE_TIL, null, "prøvesperren er fjernet");
 console.log("skriv: ok");
+
+/* ── Skriveflata på bred skjerm: hilsen og signatur som tekst i feltet ── */
+{
+  const { monter } = await import("../site/js/skriv.js");
+  const d2 = new JSDOM("<!doctype html><body><div id=rot></div></body>", { pretendToBeVisual: true });
+  Object.assign(globalThis, { document: d2.window.document, window: d2.window, getSelection: () => d2.window.getSelection() });
+  d2.window.matchMedia = (q) => ({ matches: q.includes("min-width:861px"), addEventListener() {} });
+  d2.window.addEventListener = d2.window.addEventListener.bind(d2.window);
+  const rot = d2.window.document.getElementById("rot");
+  let sendt = null;
+  const sak = { id: 7, nummer: "100", fra: "Arne Buseth", epost: "arne@rir.no", emne: "Test" };
+  monter(rot, { sak, toast() {}, planlegg: (j) => { sendt = j; }, signatur: async () => "Frank Iversen<br>KVH" });
+  const felt = rot.querySelector("#felt");
+  assert.match(felt.textContent, /^Hei Arne Buseth,/, "hilsenen står i feltet ved åpning");
+  await new Promise((r) => setTimeout(r, 10));
+  assert.ok(felt.querySelector("[data-sig]"), "signaturen ligger som tekst i feltet");
+  rot.querySelector("#send").click();
+  assert.equal(sendt, null, "hilsen og signatur alene sendes ikke");
+  felt.insertBefore(d2.window.document.createTextNode("Det fikser vi."), felt.querySelector("[data-sig]"));
+  rot.querySelector("#send").click();
+  assert.ok(sendt.kropp.body.includes("Frank Iversen<br>KVH"), "signaturen følger med");
+  assert.ok(sendt.kropp.body.includes("Det fikser vi."));
+  assert.equal((sendt.kropp.body.match(/Frank Iversen/g) || []).length, 1, "signaturen står bare én gang");
+}

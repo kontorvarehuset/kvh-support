@@ -481,7 +481,7 @@ async function tegnSakSide(sak) {
   const tegnListe2 = (l) => {
     const andre = l.filter((x) => x.id !== sak.id).slice(0, 3);
     return kundeKort + `<h4>${fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom)}</h4>` + (andre.length
-      ? andre.map((x) => `<a class="andre-sak" href="/#ticket/zoom/${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
+      ? andre.map((x) => `<a class="andre-sak" data-id="${x.id}" data-nokkel="${esc(nokkel)}" href="/#ticket/zoom/${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
       : '<div class="kunde-u">Ingen andre saker.</div>');
   };
   if (!nokkel) { rot.innerHTML = kundeKort; return; }
@@ -807,6 +807,18 @@ function koble() {
     kjorSok();
   });
   $("#rader").addEventListener("click", (e) => { if (e.target.closest("[data-a='nullstill-sok']")) nullstillSok(); });
+  /* «Siste saker» i panelet åpner saken HER, ikke i Zammad: lista blir sakene fra samme domene (som et søk), med den
+     valgte markert, og «Nullstill søk» tar deg tilbake. Ctrl/⌘-klikk og midtklikk åpner fortsatt Zammad i ny fane. */
+  $("#sak").addEventListener("click", (e) => {
+    const l = e.target.closest(".andre-sak"); if (!l || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    const liste = sisteCache.get(l.dataset.nokkel); const id = Number(l.dataset.id);
+    if (!liste || !liste.some((x) => x.id === id)) return;
+    e.preventDefault();
+    S.sokSeq++;
+    S.treff = { q: l.dataset.nokkel, liste, total: liste.length, laster: false };
+    S.filter = l.dataset.nokkel; const sk = $("#sok"); if (sk) sk.value = S.filter;
+    S.valgt = id; helhet(); velgSak(id);
+  });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
   $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, signatur: (gruppeId) => signaturHtml(gruppeId, { bruker: S.meBruker, sak: null }), toast, etterOpprettet }));
   $("#toast-b").addEventListener("click", () => { if (angreFn) angreFn(); });

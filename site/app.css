@@ -579,13 +579,8 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   :root:not([data-innbygd]) .saktopp h2{font-size:20px}
 }
 
-/* Over 860 px står signaturen synlig under skrivefeltet (ferdig utfylt, som den går ut), uten avkryssingsrad. */
-@media (min-width:861px){
-  .skriv .sig{display:block!important}
-  .skriv .sig[hidden]{display:none!important}
-  .skriv .sig-valg{display:none}
-  .skriv .sig-visning{margin-top:0;cursor:default}
-}
+/* Over 860 px ligger signaturen som vanlig tekst i selve skrivefeltet (data-sig), så den kan redigeres og fjernes. */
+.felt .sig-inline{margin-top:2px}
 
 /* PC-skjerm: skrivefeltet er dobbelt så høyt (112 px mot 56), og vokser videre til 40 % av vinduet. På lave vinduer
    tar det aldri mer enn en sjettedel av høyden, så samtalen ikke presses ut. Innbygd (RMM-vinduet) er uendret. */
