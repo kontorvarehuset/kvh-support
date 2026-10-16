@@ -586,3 +586,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   .skriv .sig-valg{display:none}
   .skriv .sig-visning{margin-top:0;cursor:default}
 }
+
+/* PC-skjerm: skrivefeltet er dobbelt så høyt (112 px mot 56), og vokser videre til 40 % av vinduet. På lave vinduer
+   tar det aldri mer enn en sjettedel av høyden, så samtalen ikke presses ut. Innbygd (RMM-vinduet) er uendret. */
+@media (min-width:861px){
+  :root:not([data-innbygd]) .skriv .felt{min-height:clamp(112px,16vh,200px);max-height:40vh}
+  :root:not([data-innbygd]) .skriv-inn{max-height:min(70vh,640px)}
+}
