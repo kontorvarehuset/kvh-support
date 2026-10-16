@@ -531,6 +531,13 @@ function ventKnapp(sak) {
       ${paaVent ? `<button role="menuitem" class="ta" data-a="aapne"><span>Åpne nå</span><span>ta av vent</span></button><div class="sep"></div>` : ""}
       <div class="h">${paaVent ? "Sett ny frist" : "Sett på vent til"}</div>
       ${v.map((x, i) => `<button role="menuitem" data-v="${i}"><span>${esc(x.navn)}</span><span>${x.merke ? esc(x.merke) : esc(ventTekst(x.d.getTime()).replace(/^\S+\s/, ""))}</span></button>`).join("")}
+      <div class="sep"></div>
+      <button role="menuitem" data-a="egen-vent" aria-expanded="false"><span>Velg dato og klokkeslett …</span><span aria-hidden="true">📅</span></button>
+      <div class="vent-egen" id="vent-egen" hidden>
+        <label>Dato<input type="date" id="vent-dato" aria-label="Dato"></label>
+        <label>Klokkeslett<input type="time" id="vent-tid" value="08:00" step="900" aria-label="Klokkeslett"></label>
+        <button type="button" class="vent-ok" data-a="egen-vent-ok">Sett på vent</button>
+      </div>
     </div>`;
 }
 
@@ -852,6 +859,28 @@ function koble() {
       return;
     }
     const ha = e.target.closest("[data-a]");
+    /* Egen frist: en dato (kalender) og et klokkeslett. Velges ingenting, brukes i morgen kl. 08:00. */
+    if (ha && ha.dataset.a === "egen-vent") {
+      const f = $("#vent-egen"); f.hidden = !f.hidden; ha.setAttribute("aria-expanded", String(!f.hidden));
+      const dato = $("#vent-dato");
+      if (!f.hidden && !dato.value) {
+        const i = new Date(); i.setDate(i.getDate() + 1);
+        const z = (n) => String(n).padStart(2, "0");
+        dato.value = `${i.getFullYear()}-${z(i.getMonth() + 1)}-${z(i.getDate())}`;
+        dato.min = `${new Date().getFullYear()}-${z(new Date().getMonth() + 1)}-${z(new Date().getDate())}`;
+      }
+      return;
+    }
+    if (ha && ha.dataset.a === "egen-vent-ok" && S.valgt) {
+      const sak = finn(S.valgt);
+      const [y, m, dd] = ($("#vent-dato").value || "").split("-").map(Number);
+      const [hh, mm] = ($("#vent-tid").value || "08:00").split(":").map(Number);
+      const d = y ? new Date(y, m - 1, dd, hh || 0, mm || 0, 0, 0) : null;
+      if (!d || isNaN(d) || d.getTime() <= Date.now()) { toast("Velg en dato og et klokkeslett fram i tid."); return; }
+      const p = $("#vent-pop"); if (p) p.hidden = true;
+      if (sak) endreStatus(sak, { state_id: 3, pending_time: d.toISOString() }, "På vent til " + ventTekst(d.getTime()));
+      return;
+    }
     if (ha && S.valgt) {
       const sak = finn(S.valgt);
       if (sak && ha.dataset.a === "lukk") { endreStatus(sak, { state_id: 4 }, "Saken er lukket"); return; }

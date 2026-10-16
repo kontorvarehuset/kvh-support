@@ -607,3 +607,12 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 /* Bilder i meldinger: aldri høyere enn 480 px (en logo uten oppgitt størrelse ble ellers vist i full størrelse),
    og med størrelsen avsenderen oppga når den finnes (width/height settes i rens.js). */
 .boble img{height:auto;max-height:480px;object-fit:contain}
+
+/* Egen frist i «På vent»-menyen: dato (nettleserens kalender) og klokkeslett. 16 px så iOS ikke zoomer. */
+.vent-egen{display:flex;flex-direction:column;gap:8px;padding:6px 10px 10px}
+.vent-egen[hidden]{display:none}
+.vent-egen label{display:flex;flex-direction:column;gap:3px;font:500 10px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mist)}
+.vent-egen input{font:400 16px "Hanken Grotesk",sans-serif;letter-spacing:0;text-transform:none;border:1px solid var(--kant);border-radius:9px;padding:6px 9px;background:var(--card);color:var(--ink);min-width:0}
+.vent-egen input:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.meny-pop .vent-ok{justify-content:center;background:var(--primary);color:var(--primary-fg);font-weight:700;border-radius:99px;padding:8px 12px}
+.meny-pop .vent-ok:hover{background:color-mix(in srgb,var(--primary) 88%,var(--ink))}
