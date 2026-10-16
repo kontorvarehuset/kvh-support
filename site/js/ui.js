@@ -258,7 +258,12 @@ function tegnListe() {
     if (x.fristNaadd) m.push(`<span class="chip ingen">Påminnelsen er nådd</span>`);
     if (x.dager >= 1) m.push(`<span class="chip vent">Venter ${x.dager} d</span>`);
     if (!x.eier && x.status !== "lukket") m.push(`<span class="chip ingen">Uten eier</span>`);
-    const eierPrikk = x.eier ? `<span class="mini-av ${x.eierId === S.me?.id ? "" : "andre"}" title="${esc(x.eier)}">${avatarInnhold(x.eier, bildeId(x.eierId))}</span>` : "";
+    /* Eieren står i MARGEN under statusikonet, som initialer. Bildet sto før på toppen ved siden av dato og kundenavn og
+       gjorde linja trang i en smal liste (støttevinduet i RMM-et). I margen tar den ingen tekstbredde; bildet står fortsatt
+       inne i selve saken. */
+    const eierPrikk = x.eier
+      ? `<span class="rad-eier${x.eierId === S.me?.id ? " meg" : ""}" title="Eier: ${esc(x.eier)}" aria-label="Eier: ${esc(x.eier)}">${esc(initialer(x.eier))}</span>`
+      : "";
     /* Skillelinje før første sak på vent når åpne og på vent vises sammen. */
     let skille = "";
     if (gruppert && x.status === "vent" && !skilleSatt) {
@@ -266,8 +271,8 @@ function tegnListe() {
       skille = `<div class="skille">På vent · ${rader.filter((r) => r.status === "vent").length}</div>`;
     }
     return skille + `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
-      ${statusMerke(x)}
-      <span class="l1"><span class="kunde">${esc(x.kunde)}</span><span class="tid">${esc(kortTid(x.sist))}</span>${eierPrikk}</span>
+      ${statusMerke(x)}${eierPrikk}
+      <span class="l1"><span class="kunde">${esc(x.kunde)}</span><span class="tid">${esc(kortTid(x.sist))}</span></span>
       <span class="emne" style="display:block">${esc(x.emne)}</span>
       <span class="utdrag" style="display:block">${esc(x.fra)} · #${esc(x.nummer)} · ${x.antall} ${x.antall === 1 ? "melding" : "meldinger"}</span>
       ${m.length ? `<span class="merker">${m.join("")}</span>` : ""}
