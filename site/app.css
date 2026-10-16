@@ -602,3 +602,7 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .boble{border-radius:16px}
 .skriv-inn{border-radius:16px}
 .mld.kunde .boble{border-left-width:1px;border-left-color:var(--hairline)}
+
+/* Bilder i meldinger: aldri høyere enn 480 px (en logo uten oppgitt størrelse ble ellers vist i full størrelse),
+   og med størrelsen avsenderen oppga når den finnes (width/height settes i rens.js). */
+.boble img{height:auto;max-height:480px;object-fit:contain}

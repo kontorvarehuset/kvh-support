@@ -31,3 +31,13 @@ assert.equal(tekst(x.svar), "", "bare vedleggsstier slipper gjennom fra samme op
 x = r('<table><tr><td colspan="2" style="x" onclick="1">a</td></tr></table>');
 assert.match(tekst(x.svar), /<td colspan="2">a<\/td>/);
 console.log("rens: ok");
+
+/* Størrelse på bilder følger med fra avsenderen, men bare som hele tall i piksler. */
+{
+  const r2 = rens('<img src="https://x.example/l.png" width="120" height="40"><img src="https://x.example/m.png" style="width: 90px; height:30px"><img src="https://x.example/n.png" width="expression(alert(1))">');
+  const d3 = document.createElement("div"); d3.appendChild(r2.svar);
+  const im = d3.querySelectorAll("img");
+  assert.equal(im[0].getAttribute("width"), "120"); assert.equal(im[0].getAttribute("height"), "40");
+  assert.equal(im[1].getAttribute("width"), "90"); assert.equal(im[1].getAttribute("height"), "30");
+  assert.equal(im[2].getAttribute("width"), null, "ugyldig verdi slippes ikke gjennom");
+}

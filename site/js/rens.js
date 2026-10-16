@@ -83,6 +83,14 @@ export function rens(html, valg = {}) {
         ny.setAttribute("alt", n.getAttribute("alt") || "");
         ny.setAttribute("loading", "lazy");
         ny.setAttribute("referrerpolicy", "no-referrer");
+        /* Størrelsen fra avsenderen (width/height eller style i piksler) følger med. Uten den vistes en logo i en
+           signatur i sin fulle størrelse, flere hundre piksler høy. Bare hele tall i piksler slipper gjennom. */
+        const stil = n.getAttribute("style") || "";
+        for (const a of ["width", "height"]) {
+          const v = n.getAttribute(a) || (new RegExp(`(?:^|;)\\s*${a}\\s*:\\s*(\\d{1,4})px`, "i").exec(stil) || [])[1];
+          const m = /^\s*(\d{1,4})(px)?\s*$/i.exec(v || "");
+          if (m && Number(m[1]) > 0) ny.setAttribute(a, String(Math.min(Number(m[1]), 2000)));
+        }
       } else if (tag === "TD" || tag === "TH") {
         for (const a of ["colspan", "rowspan"]) {
           const v = n.getAttribute(a);
