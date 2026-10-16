@@ -451,7 +451,6 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
   .skriv-inn{max-height:44vh}
   .felt{min-height:44px;padding:8px 12px}
 }
-}
 
 /* Svar-knappen: på smale skjermer er skriveflata først bare EN knapp, og folder seg ut når man trykker på den. Brede
    skjermer har feltet fremme hele tiden. Utvidet-tilstanden er en klasse (ikke :focus-within): å trykke på
