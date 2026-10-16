@@ -616,3 +616,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .vent-egen input:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
 .meny-pop .vent-ok{justify-content:center;background:var(--primary);color:var(--primary-fg);font-weight:700;border-radius:99px;padding:8px 12px}
 .meny-pop .vent-ok:hover{background:color-mix(in srgb,var(--primary) 88%,var(--ink))}
+
+/* Tynn loddrett skillelinje mellom ikonkolonnen (status og eierinitialer) og teksten, som i en postkasse: linjen tones ut mot
+   topp og bunn, så den leses som en kolonnekant og ikke som en strek mellom radene. Teksten flyttes 8 px mot høyre for å gi luft. */
+.rad{padding-left:50px}
+.rad::before{content:"";position:absolute;left:41px;top:0;bottom:0;width:1px;pointer-events:none;
+  background:linear-gradient(to bottom,transparent 0,var(--rule) 22%,var(--rule) 78%,transparent 100%)}
+@media (max-width:860px){.rad{padding-left:46px}.rad::before{left:38px}}
