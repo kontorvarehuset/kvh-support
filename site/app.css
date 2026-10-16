@@ -380,8 +380,8 @@ a.knapp{text-decoration:none;display:inline-block;color:var(--ink)}
 /* «Venter på oss»: en liten oransje prikk midt i selve hengelåsen (kroppen står på 11–22 i ikonets 24-rutenett, midten ca. 15,5 px
    nede i 24 px-boksen). Den lå før i hjørnet og stakk ut forbi ikonet, så låsen og prikken leste som én form som var forskjøvet mot høyre. */
 .stat-prikk{position:absolute;left:9px;top:12.5px;width:6px;height:6px;border-radius:50%;background:var(--primary)}
-.skille{display:flex;align-items:center;gap:10px;padding:10px 12px 6px;color:var(--mist);font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase}
-.skille::after{content:"";flex:1;height:1px;background:var(--hairline)}
+.vent-overgang{display:flex;align-items:center;gap:10px;padding:10px 12px 6px;color:var(--mist);font:500 10.5px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase}
+.vent-overgang::after{content:"";flex:1;height:1px;background:var(--hairline)}
 .vis-vent{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;color:var(--graphite);cursor:pointer;padding:0 2px}
 .vis-vent[hidden]{display:none}
 .segment button .pluss{color:var(--stale);font-weight:600;font-size:12px;margin-left:3px}
@@ -626,10 +626,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 
 /* Skillet mellom åpne saker og saker på vent (når «Vis også saker på vent» er på): husets oransje, en linje som dekker ca. 80 %
    av bredden og tones ut mot høyre, så det leses som en overgang og ikke som en ny liste. */
-.skille{color:var(--primary-deep);padding:14px 10% 8px}
-.skille::before,.skille::after{content:"";flex:1;height:1.5px}
-.skille::before{background:linear-gradient(to left,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
-.skille::after{background:linear-gradient(to right,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
+.vent-overgang{color:var(--primary-deep);padding:14px 10% 8px}
+.vent-overgang::before,.vent-overgang::after{content:"";flex:1;height:1.5px}
+.vent-overgang::before{background:linear-gradient(to left,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
+.vent-overgang::after{background:linear-gradient(to right,var(--primary),color-mix(in srgb,var(--primary) 0%,transparent))}
 
 /* Saklista: kunden er en liten stor-bokstavet etikett i oransje over emnet (forslag B), og emnet er fet og kan ta to linjer.
    Med dagens oppsett hadde kunde og emne samme størrelse, så et langt emne kuttet seg selv og kunden druknet i teksten. */

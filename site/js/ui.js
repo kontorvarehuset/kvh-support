@@ -270,7 +270,7 @@ function tegnListe() {
     let skille = "";
     if (gruppert && x.status === "vent" && !skilleSatt) {
       skilleSatt = true;
-      skille = `<div class="skille">På vent · ${rader.filter((r) => r.status === "vent").length}</div>`;
+      skille = `<div class="vent-overgang">På vent · ${rader.filter((r) => r.status === "vent").length}</div>`;
     }
     return skille + `<button class="rad" data-id="${x.id}" aria-current="${x.id === S.valgt}">
       ${statusMerke(x)}${eierPrikk}
