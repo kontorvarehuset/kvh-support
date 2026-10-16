@@ -520,7 +520,7 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .sig{display:none!important}
 
 /* Eierens initialer i margen under statusikonet. Mine saker i husets oransje, kollegers i mørkt. */
-.rad-eier{position:absolute;left:12px;top:42px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
+.rad-eier{position:absolute;left:13px;top:42px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
   font-size:9px;font-weight:700;letter-spacing:.02em;background:var(--ink);color:var(--paper)}
 .rad-eier.meg{background:var(--primary);color:var(--primary-fg)}
 
