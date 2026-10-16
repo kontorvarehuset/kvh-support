@@ -471,32 +471,41 @@ function tegnSakTopp(sak) {
    spør bredt og kontrollerer domenet selv etterpå. */
 const FRIE_DOMENER = new Set(["gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.no", "live.com", "live.no", "online.no", "icloud.com", "me.com", "yahoo.com", "yahoo.no", "msn.com", "proton.me", "protonmail.com", "tele2.no", "getmail.no", "start.no"]);
 const sisteCache = new Map();
+const IK_POST = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+const IK_TLF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
 async function tegnSakSide(sak) {
   const rot = $("#sak-side"); if (!rot) return;
   const adr = (sak.epost || "").toLowerCase();
   const dom = adr.includes("@") ? adr.split("@")[1] : "";
   const fri = !dom || FRIE_DOMENER.has(dom);
   const nokkel = fri ? adr : dom;
-  const kundeKort = `<h4>Kunde</h4><div class="kunde-n">${esc(sak.fra)}</div><div class="kunde-u">${esc(sak.kunde)}${sak.epost ? "<br>" + esc(sak.epost) : ""}</div>`;
-  const tegnListe2 = (l) => {
-    const andre = l.filter((x) => x.id !== sak.id).slice(0, 3);
-    return kundeKort + `<h4>${fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom)}</h4>` + (andre.length
-      ? andre.map((x) => `<a class="andre-sak" data-id="${x.id}" data-nokkel="${esc(nokkel)}" href="/kvhui/#sak-${x.id}" target="_blank" rel="noopener"><span class="a1"><i class="${x.status}"></i>${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")
+  /* Kundekort: avatar (bilde hvis Zammad har det), navn, firma som pille og kontaktlinjer med ikon. */
+  const org = sak.kunde && sak.kunde !== sak.fra ? sak.kunde : "";
+  const kundeKort = `<div class="kk"><span class="mini-av kk-av">${avatarInnhold(sak.fra, bildeId(sak.kundeId))}</span><div><div class="kk-n">${esc(sak.fra)}</div>${org ? `<span class="kk-org">${esc(org)}</span>` : ""}</div></div>
+    <div class="kk-kont">${sak.epost ? `<span>${IK_POST}${esc(sak.epost)}</span>` : ""}${sak.tlf ? `<span>${IK_TLF}<a href="tel:${esc(sak.tlf.replace(/[^+\d]/g, ""))}">${esc(sak.tlf)}</a></span>` : ""}</div>`;
+  const overskrift = fri ? "Siste saker fra samme avsender" : "Siste saker fra " + esc(dom);
+  const tegnListe2 = (c) => {
+    const andre = c.liste.filter((x) => x.id !== sak.id).slice(0, 3);
+    return kundeKort + `<h4>${overskrift}</h4>` + (andre.length
+      ? `<div class="tidslinje">${andre.map((x) => `<a class="andre-sak" data-id="${x.id}" data-nokkel="${esc(nokkel)}" href="/kvhui/#sak-${x.id}" target="_blank" rel="noopener"><i class="sdot ${x.status}"></i><span class="a1">${esc(x.emne)}</span><span class="u">#${esc(x.nummer)} · ${esc(x.fra)} · ${esc(kortTid(x.sist))}</span></a>`).join("")}</div>`
+        + (c.total > andre.length + 1 ? `<a class="mer-lenke" href="#" data-nokkel="${esc(nokkel)}">Vis alle ${c.total}${fri ? "" : " fra " + esc(dom)} →</a>` : "")
       : '<div class="kunde-u">Ingen andre saker.</div>');
   };
   if (!nokkel) { rot.innerHTML = kundeKort; return; }
   if (sisteCache.has(nokkel)) { rot.innerHTML = tegnListe2(sisteCache.get(nokkel)); return; }
-  rot.innerHTML = kundeKort + '<h4>Siste saker</h4><div class="kunde-u">Henter …</div>';
+  rot.innerHTML = kundeKort + `<h4>${overskrift}</h4><div class="kunde-u">Henter …</div>`;
   try {
     const q = fri ? `customer.email:"${escES(adr)}"` : `(customer.email:"${escES(dom)}" OR customer.email:*@${escES(dom)})`;
     const res = await sok(q, 15);
     const liste = byggSaker(res).filter((x) => fri ? x.epost.toLowerCase() === adr : x.epost.toLowerCase().endsWith("@" + dom));
     liste.sort((a, b) => (b.sist || 0) - (a.sist || 0));
-    sisteCache.set(nokkel, liste);
-    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = tegnListe2(liste);
+    /* Tallet i «Vis alle» er det Zammad melder, men aldri lavere enn det vi faktisk har hentet. */
+    const c = { liste, total: Math.max(res.total_count || 0, liste.length) };
+    sisteCache.set(nokkel, c);
+    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = tegnListe2(c);
   } catch (e) {
     if (e instanceof IkkeInnlogget) return;
-    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = kundeKort + '<h4>Siste saker</h4><div class="kunde-u">Kunne ikke hentes.</div>';
+    if (S.valgt === sak.id && $("#sak-side")) $("#sak-side").innerHTML = kundeKort + `<h4>${overskrift}</h4><div class="kunde-u">Kunne ikke hentes.</div>`;
   }
 }
 
@@ -817,14 +826,17 @@ function koble() {
   /* «Siste saker» i panelet åpner saken HER, ikke i Zammad: lista blir sakene fra samme domene (som et søk), med den
      valgte markert, og «Nullstill søk» tar deg tilbake. Ctrl/⌘-klikk og midtklikk åpner fortsatt Zammad i ny fane. */
   $("#sak").addEventListener("click", (e) => {
-    const l = e.target.closest(".andre-sak"); if (!l || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
-    const liste = sisteCache.get(l.dataset.nokkel); const id = Number(l.dataset.id);
-    if (!liste || !liste.some((x) => x.id === id)) return;
+    const alleLenke = e.target.closest(".mer-lenke");
+    const l = alleLenke || e.target.closest(".andre-sak"); if (!l || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    const c = sisteCache.get(l.dataset.nokkel); const liste = c && c.liste;
+    /* «Vis alle»: lista blir sakene fra domenet, og den åpne saken beholdes. */
+    const id = alleLenke ? S.valgt : Number(l.dataset.id);
+    if (!liste || (!alleLenke && !liste.some((x) => x.id === id))) return;
     e.preventDefault();
     S.sokSeq++;
-    S.treff = { q: l.dataset.nokkel, liste, total: liste.length, laster: false };
+    S.treff = { q: l.dataset.nokkel, liste, total: c.total, laster: false };
     S.filter = l.dataset.nokkel; const sk = $("#sok"); if (sk) sk.value = S.filter;
-    S.valgt = id; helhet(); velgSak(id);
+    S.valgt = id; helhet(); if (!alleLenke) velgSak(id);
   });
   $("#rader").addEventListener("click", (e) => { const r = e.target.closest(".rad"); if (r) velgSak(Number(r.dataset.id)); });
   $("#ny-b").addEventListener("click", () => apneNySak({ me: S.me, agenter: S.agenter, signatur: (gruppeId) => signaturHtml(gruppeId, { bruker: S.meBruker, sak: null }), toast, etterOpprettet }));

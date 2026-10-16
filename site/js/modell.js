@@ -80,6 +80,9 @@ export function byggSaker(res, naa = Date.now()) {
       kunde: org?.name || navnPaa(kunde) || "Ukjent kunde",
       fra: navnPaa(kunde),
       epost: kunde?.email || "",
+      /* Til kundekortet i panelet. Telefonnummeret finnes ikke på alle kunder. */
+      kundeId: t.customer_id,
+      tlf: kunde?.mobile || kunde?.phone || "",
       status,
       gruppeId: t.group_id,
       stateId: t.state_id,

@@ -641,3 +641,27 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
    særlig i mørk drakt. */
 .knapp.er-paa-vent{color:var(--ink)}
 .knapp.er-paa-vent::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--stale);margin-right:8px;vertical-align:1px}
+
+/* Kundekort og tidslinje i panelet (forslag B): avatar og firmapille, kontaktlinjer med ikon, og de siste sakene som en tidslinje med
+   statusprikker (grønn åpen, gul på vent, grå lukket). */
+.kk{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--hairline);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}
+.kk-av{width:44px;height:44px;font-size:15px;flex:none}
+.kk-n{font-weight:700;font-size:15.5px;letter-spacing:-.01em;line-height:1.2}
+.kk-org{display:inline-block;margin-top:3px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--primary-tint);color:var(--primary-deep)}
+.kk-kont{display:flex;flex-direction:column;gap:2px;margin:10px 2px 0;font-size:12.5px;color:var(--graphite);overflow-wrap:anywhere}
+.kk-kont span{display:flex;gap:8px;align-items:center}
+.kk-kont svg{width:14px;height:14px;fill:none;stroke:var(--mist);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.kk-kont a{color:inherit;text-decoration:none}
+.pan-side h4{margin:18px 2px 8px}
+.pan-side h4:first-child{margin-top:0}
+.tidslinje{position:relative;margin-left:5px;padding-left:18px;border-left:1.5px solid var(--hairline)}
+.tidslinje .andre-sak{position:relative;display:flex;flex-direction:column;gap:1px;padding:3px 8px 12px 0;margin:0;border-radius:0;color:inherit;text-decoration:none}
+.tidslinje .andre-sak:last-child{padding-bottom:0}
+.tidslinje .andre-sak:hover .a1{color:var(--primary-deep)}
+.tidslinje .sdot{position:absolute;left:-23px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--online);box-shadow:0 0 0 3px var(--paper)}
+.tidslinje .sdot.vent{background:var(--stale)}
+.tidslinje .sdot.lukket{background:var(--rule)}
+.tidslinje .a1{display:block;font-weight:600;font-size:13px;line-height:1.3}
+.tidslinje .u{color:var(--mist);font-size:12px;padding:0}
+.mer-lenke{display:inline-block;margin-top:12px;font-size:12.5px;font-weight:600;color:var(--primary-deep);text-decoration:none}
+.mer-lenke:hover{text-decoration:underline}
