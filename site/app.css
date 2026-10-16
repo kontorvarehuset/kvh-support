@@ -525,23 +525,33 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .rad-eier.meg{background:var(--primary);color:var(--primary-fg)}
 
 /* ── Bred skjerm: valgene i et panel på høyre side ─────────────────────────────────────────────────
-   På brede skjermer er høyden det som mangler når man leser lange saker. Eier, vent og lukk flyttes derfor ut av
-   sakshodet og til et panel ved siden av samtalen, og tallbåndet øverst gjøres slankt (tallene er fortsatt
-   snarveier). Innbygd i RMM-vinduet (data-innbygd) og alt under 1200 px beholder det gamle oppsettet. */
+   På brede skjermer er høyden det som mangler når man leser lange saker. Eier og vent flyttes derfor ut av sakshodet
+   og til toppen av et panel ved siden av samtalen, og resten av valgene (lukk, Zammad) og kunden står under.
+   Sakshodet og panelets topp ligger i SAMME rad i et rutenett, så streken under dem går rett over begge, hvor
+   høyt tittelen enn blir. Tallbåndet gjøres slankt (tallene er fortsatt snarveier). Innbygd i RMM-vinduet
+   (data-innbygd) og alt under 1200 px beholder det gamle oppsettet. */
 .sak-kol{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
 .sak-panel{display:none}
 @media (min-width:1200px){
-  :root:not([data-innbygd]) .sak{flex-direction:row}
-  :root:not([data-innbygd]) .sak-panel{display:block;flex:none;width:300px;overflow-y:auto;border-left:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 60%,var(--card))}
-  :root:not([data-innbygd]) .pan-handl{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:16px 16px 18px;border-bottom:1px solid var(--hairline)}
-  :root:not([data-innbygd]) .pan-handl .knapp{width:100%;text-align:center;box-sizing:border-box}
-  :root:not([data-innbygd]) .pan-handl .eier-b{display:flex;align-items:center;gap:9px;text-align:left}
-  :root:not([data-innbygd]) .pan-handl .pf{position:relative}
-  :root:not([data-innbygd]) .pan-handl .pf .meny-pop{left:0;right:0;width:auto}
-  :root:not([data-innbygd]) .pan-handl .zt{display:inline}
-  :root:not([data-innbygd]) .pan-handl h4,:root:not([data-innbygd]) .pan-side h4{margin:0;font:500 10px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--mist)}
-  :root:not([data-innbygd]) .pan-handl h4:not(:first-child){margin-top:8px}
+  :root:not([data-innbygd]) .sak{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:auto minmax(0,1fr) auto}
+  :root:not([data-innbygd]) .sak-kol,:root:not([data-innbygd]) .sak-panel{display:contents}
+  :root:not([data-innbygd]) .saktopp{grid-column:1;grid-row:1}
+  :root:not([data-innbygd]) .tråd{grid-column:1;grid-row:2}
+  :root:not([data-innbygd]) .skriv-rot{grid-column:1;grid-row:3}
+  :root:not([data-innbygd]) .pan-handl{grid-column:2;grid-row:1;display:flex;gap:8px;align-items:center;padding:12px 16px;border-left:1px solid var(--hairline);border-bottom:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 60%,var(--card));min-width:0}
+  :root:not([data-innbygd]) .pan-rest{grid-column:2;grid-row:2 / 4;overflow-y:auto;border-left:1px solid var(--hairline);background:color-mix(in srgb,var(--paper) 60%,var(--card))}
+  :root:not([data-innbygd]) .pan-handl .pf{position:relative;min-width:0}
+  :root:not([data-innbygd]) .pan-handl .pf.eier{flex:none}
+  :root:not([data-innbygd]) .pan-handl .pf.vent{flex:1}
+  :root:not([data-innbygd]) .pan-handl .knapp{width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;padding:7px 12px}
+  :root:not([data-innbygd]) .pan-handl .eier-b{display:flex;align-items:center;gap:7px;white-space:nowrap}
+  :root:not([data-innbygd]) .pan-handl .pf .meny-pop{left:0;right:auto;width:250px}
+  :root:not([data-innbygd]) .pan-handl .pf.vent .meny-pop{left:auto;right:0}
+  :root:not([data-innbygd]) .pan-knapper{display:flex;flex-direction:column;gap:8px;padding:16px 16px 18px;border-bottom:1px solid var(--hairline)}
+  :root:not([data-innbygd]) .pan-knapper .knapp{width:100%;text-align:center;box-sizing:border-box}
+  :root:not([data-innbygd]) .pan-knapper .zt{display:inline}
   :root:not([data-innbygd]) .pan-side{padding:16px;display:flex;flex-direction:column;gap:6px}
+  .pan-side h4{margin:0;font:500 10px "JetBrains Mono",monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--mist)}
   .pan-side h4:not(:first-child){margin-top:14px}
   .kunde-n{font-weight:700;font-size:15px}
   .kunde-u{color:var(--mist);font-size:12.5px;overflow-wrap:anywhere}

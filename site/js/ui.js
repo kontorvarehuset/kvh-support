@@ -441,7 +441,7 @@ function handlingerHtml(sak, brede) {
     : `${sak.status === "vent" ? '<button class="knapp" data-a="aapne">Åpne nå</button>' : ""}<button class="knapp primær" data-a="lukk">Lukk saken</button>`;
   const zammad = `<a class="knapp" href="/#ticket/zoom/${sak.id}" target="_blank" rel="noopener" title="Åpne saken i Zammad" aria-label="Åpne saken i Zammad"><span class="zt">Zammad </span>↗</a>`;
   /* I panelet får hver nedtrekksmeny sin egen ramme, så menyen åpnes under sin egen knapp og ikke under hele stabelen. */
-  if (brede) return `<h4>Sak</h4><div class="pf">${eier}</div>${vent ? `<div class="pf">${vent}</div>` : ""}<h4>Handlinger</h4>${lukkKnapper}${zammad}`;
+  if (brede) return { topp: `<div class="pf eier">${eier}</div>${vent ? `<div class="pf vent">${vent}</div>` : ""}`, rest: `${lukkKnapper}${zammad}` };
   return `${eier}${vent}${lukkKnapper}${zammad}`;
 }
 
@@ -456,8 +456,11 @@ function tegnSakTopp(sak) {
         <div class="fra">${esc(sak.fra)}${sak.epost ? " · " + esc(sak.epost) : ""}</div>
       </div>
       ${brede ? "" : `<div class="handlinger">${handlingerHtml(sak, false)}</div>`}`;
-  const panel = $("#sak-panel-handl");
-  if (panel) panel.innerHTML = brede ? handlingerHtml(sak, true) : "";
+  const topp = $("#sak-panel-handl"), rest = $("#sak-panel-rest");
+  if (topp && rest) {
+    const h = brede ? handlingerHtml(sak, true) : { topp: "", rest: "" };
+    topp.innerHTML = h.topp; rest.querySelector(".pan-knapper").innerHTML = h.rest;
+  }
 }
 
 /* Kunden og de nyeste sakene fra samme domene. Fri-e-post (gmail osv.) deler ikke domene med noen
@@ -663,7 +666,7 @@ function tegnSak() {
       </div></div>
       <div id="skriv-rot" class="skriv-rot"></div>
     </div>
-    <aside class="sak-panel" aria-label="Valg for saken"><div class="handlinger pan-handl" id="sak-panel-handl"></div><div class="pan-side" id="sak-side"></div></aside>`;
+    <aside class="sak-panel" aria-label="Valg for saken"><div class="handlinger pan-handl" id="sak-panel-handl"></div><div class="pan-rest" id="sak-panel-rest"><div class="pan-knapper"></div><div class="pan-side" id="sak-side"></div></div></aside>`;
   tegnSakTopp(sak);
   if (bredModus()) tegnSakSide(sak);
   tegnBanner(sak);
