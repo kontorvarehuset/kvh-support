@@ -604,9 +604,11 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .skriv-inn{border-radius:16px}
 .mld.kunde .boble{border-left-width:1px;border-left-color:var(--hairline)}
 
-/* Bilder i meldinger: aldri høyere enn 480 px (en logo uten oppgitt størrelse ble ellers vist i full størrelse),
-   og med størrelsen avsenderen oppga når den finnes (width/height settes i rens.js). */
-.boble img{height:auto;max-height:480px;object-fit:contain}
+/* Bilder i meldinger er miniatyrer: aldri over 320 × 200 px, og et trykk åpner dem i full størrelse (lysboksen).
+   Kundens signatur har ofte en stor logo (Langset 28. okt 2026 fylte hele skjermen selv med en grense på 480 px), og vi
+   kan ikke skille en logo fra et skjermbilde ut fra filen. Miniatyr er derfor rett for begge; størrelsen avsenderen oppga
+   (width/height settes i rens.js) kan bare gjøre dem mindre. */
+.boble img{height:auto;max-width:min(100%,320px);max-height:200px;object-fit:contain}
 
 /* Egen frist i «På vent»-menyen: dato (nettleserens kalender) og klokkeslett. 16 px så iOS ikke zoomer. */
 .vent-egen{display:flex;flex-direction:column;gap:8px;padding:6px 10px 10px}
