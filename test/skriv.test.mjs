@@ -101,3 +101,28 @@ console.log("skriv: ok");
   assert.equal(sendt.kropp.body.includes("@bj"), false, "det halvskrevne @ er borte");
   console.log("skriv @-meny: ok");
 }
+
+/* ── Første som svarer får saken ── */
+{
+  const { monter } = await import("../site/js/skriv.js");
+  const d4 = new JSDOM("<!doctype html><body><div id=rot></div></body>", { pretendToBeVisual: true });
+  Object.assign(globalThis, { document: d4.window.document, window: d4.window, getSelection: () => d4.window.getSelection() });
+  d4.window.matchMedia = (q) => ({ matches: false, addEventListener() {} });
+  const kjor = (sak, { meId = 4, modus = "svar", lukk = false } = {}) => {
+    const rot = d4.window.document.getElementById("rot"); rot.innerHTML = "";
+    let j = null;
+    monter(rot, { sak, meId, toast() {}, planlegg: (x) => { j = x; } });
+    if (modus === "notat") rot.querySelector('[data-m="notat"]').click();
+    rot.querySelector("#felt").textContent = "Hei, dette fikser vi.";
+    rot.querySelector(lukk ? "#send-lukk" : "#send").click();
+    return j;
+  };
+  const base = { nummer: "1", fra: "A", epost: "a@b.no", emne: "T" };
+  assert.deepEqual(kjor({ ...base, id: 21, eierId: null }).etterpa, { owner_id: 4 }, "sak uten eier: svareren tar den");
+  assert.equal(kjor({ ...base, id: 22, eierId: 9 }).etterpa, null, "sak med eier beholder eieren");
+  assert.equal(kjor({ ...base, id: 23, eierId: null }, { modus: "notat" }).etterpa, null, "et internt notat tar ikke saken");
+  assert.deepEqual(kjor({ ...base, id: 24, eierId: null }, { lukk: true }).etterpa, { state_id: 4, owner_id: 4 }, "send og lukk: begge deler");
+  assert.deepEqual(kjor({ ...base, id: 25, eierId: 9 }, { lukk: true }).etterpa, { state_id: 4 }, "send og lukk på eid sak: bare lukking");
+  assert.equal(kjor({ ...base, id: 26, eierId: null }, { meId: null }).etterpa, null, "uten kjent bruker gjøres ingenting");
+  console.log("skriv første svarer: ok");
+}

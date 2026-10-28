@@ -340,13 +340,19 @@ export function monter(rot, ctx) {
       subject: sak.emne,
     };
     if (!notat) { kropp.to = sak.epost; if (u.cc.length) kropp.cc = u.cc.join(", "); }
+    /* Første agent som svarer kunden, får saken: er den uten eier, settes eieren i samme jobb som svaret. Interne notater
+       tar den ikke (et notat der man ber en kollega om hjelp er ikke å ta saken), og en sak som alt har eier beholder den. */
+    const tarSaken = !notat && !sak.eierId && ctx.meId;
+    const etterpa = lukkEtterpaa && !notat || tarSaken
+      ? { ...(lukkEtterpaa && !notat ? { state_id: 4 } : {}), ...(tarSaken ? { owner_id: ctx.meId } : {}) }
+      : null;
     const brukt = { html: felt.innerHTML, modus: u.modus, cc: [...u.cc] };
     felt.innerHTML = ""; u.html = ""; u.cc = []; oppdater();
     skrivEl.classList.remove("utvidet");
     ctx.planlegg({
       kropp, notat, saksId: sak.id,
       /* Etter svaret lukkes saken, i samme jobb: ett Angre gjelder begge deler. */
-      etterpa: lukkEtterpaa && !notat ? { state_id: 4 } : null,
+      etterpa,
       beskrivelse: notat ? "Notat lagres" : `Svar sendes${lukkEtterpaa ? " og saken lukkes" : ""} til ${sak.epost}${brukt.cc.length ? " og " + brukt.cc.length + " i kopi" : ""}`,
       gjenopprett: () => { u.html = brukt.html; u.modus = brukt.modus; u.cc = brukt.cc; if (rot.contains(felt)) { felt.innerHTML = u.html; oppdater(); skrivEl.classList.add("utvidet"); } },
     });

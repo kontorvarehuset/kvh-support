@@ -422,7 +422,7 @@ function tegnArtikkelRot(sak) {
 function monterSkriveflate(sak) {
   const rot = $("#skriv-rot"); if (!rot) return;
   if (sak.status === "lukket" || !S.artikler.has(sak.id)) { rot.innerHTML = ""; return; }
-  monter(rot, { sak, agenter: () => S.agenter.filter((a) => a.id !== S.me?.id), signatur: () => signaturHtml(sak.gruppeId, { bruker: S.meBruker, sak }), toast, planlegg: (j) => planleggSending(j, { toast, ferdig: etterSending, feilet: feilVedSending }) });
+  monter(rot, { sak, meId: S.me?.id, agenter: () => S.agenter.filter((a) => a.id !== S.me?.id), signatur: () => signaturHtml(sak.gruppeId, { bruker: S.meBruker, sak }), toast, planlegg: (j) => planleggSending(j, { toast, ferdig: etterSending, feilet: feilVedSending }) });
 }
 
 async function etterSending(j) {
