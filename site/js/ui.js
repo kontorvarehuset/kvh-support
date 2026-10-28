@@ -49,6 +49,7 @@ const S = {
   sokSeq: 0,
   agenter: [],
   saker: [],
+  nevnt: new Map(),
   lukkede: null,
   brukere: new Map(),
   fane: "åpen",
@@ -96,7 +97,33 @@ async function lastSaker() {
   for (const [id, b] of brukereFra(res)) S.brukere.set(id, b);
   S.saker = medLokale(byggSaker(res), false);
   S.mer = (res.total_count || 0) > S.saker.length;
+  await lastNevnt();
 }
+
+/*
+ * Saker der jeg er nevnt (@) i et internt notat. Zammad gjør en omtale til abonnement på saken, og søket
+ * `mention_user_ids:<min id>` finner dem (målt 28. okt 2026: ga bare saken jeg var nevnt i, tomt for en id som ikke finnes).
+ * Feiler det, står forrige liste, og resten av siden virker.
+ */
+async function lastNevnt() {
+  if (!S.me) return;
+  try {
+    const res = await sok(`mention_user_ids:${S.me.id} AND ${APNE_SPORRING}`, 100);
+    for (const [id, b] of brukereFra(res)) S.brukere.set(id, b);
+    S.nevnt = new Map(byggSaker(res).map((x) => [x.id, x.oppdatert]));
+  } catch (e) {
+    if (e instanceof IkkeInnlogget) throw e;
+  }
+}
+
+/* «Sett» ligger i denne nettleseren: en omtale er ny til saken er åpnet, og blir det igjen når noe nytt skjer på saken etterpå. */
+const SETT_NOKKEL = "kvhui-nevnt-sett";
+function lesSett() { try { return JSON.parse(localStorage.getItem(SETT_NOKKEL) || "{}") || {}; } catch { return {}; } }
+function merkSett(id) {
+  if (!S.nevnt.has(id)) return;
+  try { const t = lesSett(); t[id] = Date.now(); localStorage.setItem(SETT_NOKKEL, JSON.stringify(t)); } catch { /* uten lagring blinker den til neste last */ }
+}
+const nyeNevnt = () => { const t = lesSett(); return [...S.nevnt].filter(([id, opp]) => !(t[id] >= Date.parse(opp))).map(([id]) => id); };
 
 async function lastLukkede() {
   const res = await sok("state.name:closed AND updated_at:[now-30d TO now]", 100);
@@ -151,11 +178,12 @@ function faneKilde() {
 
 function synlige() {
   /* Mens et søk i alle saker står, er det treffene som vises, ikke fanen man sto i. */
-  if (S.treff) return S.treff.liste.filter((x) => S.visning !== "mine" || x.eierId === S.me?.id);
+  if (S.treff) return S.treff.liste.filter((x) => (S.visning !== "mine" || x.eierId === S.me?.id) && (S.visning !== "nevnt" || S.nevnt.has(x.id)));
   const kilde = faneKilde();
   const q = S.filter.trim().toLowerCase();
   return kilde.filter((x) =>
     (S.visning !== "mine" || x.eierId === S.me?.id) &&
+    (S.visning !== "nevnt" || S.nevnt.has(x.id)) &&
     (S.spesial !== "uten" || !x.eier) &&
     (S.spesial !== "gamle" || x.dager >= 1) &&
     (!q || `${x.kunde} ${x.emne} ${x.fra} ${x.nummer}`.toLowerCase().includes(q)));
@@ -185,6 +213,7 @@ function tegnHero() {
   const neste = vent.map((x) => x.ventTil).filter((t) => t && t > Date.now()).sort()[0];
   const trenger = apne.filter((x) => x.venterPaaOss && (!x.eier || x.eierId === S.me?.id)).length;
   const fornavn = (S.me?.navn || "").split(" ")[0];
+  const nye = nyeNevnt();
   const kort = [
     ["åpne", "Åpne saker", apne.length, uten ? `${uten} uten eier` : "alle har eier", "", S.fane === "åpen" && !S.spesial, "Vis åpne saker"],
     ["uten", "Uten eier", uten, uten ? "ingen har tatt dem" : "alle er tatt", uten ? "varsel" : "", S.spesial === "uten", "Vis saker uten eier"],
@@ -194,11 +223,11 @@ function tegnHero() {
   $("#hero").innerHTML = `<div>
       <div class="dato">${esc(dato)}</div>
       <h1>${hils}${fornavn ? ", " + esc(fornavn) : ""}.</h1>
-      <div class="under">${trenger ? `Du har ${trenger} ${trenger === 1 ? "sak" : "saker"} som venter på deg.` : "Ingenting venter på deg akkurat nå."}</div>
+      <div class="under">${trenger ? `Du har ${trenger} ${trenger === 1 ? "sak" : "saker"} som venter på deg.` : "Ingenting venter på deg akkurat nå."}${nye.length ? ` <button type="button" class="under-nevnt" id="til-nevnt">Du er nevnt i ${nye.length} ${nye.length === 1 ? "sak" : "saker"}.</button>` : ""}</div>
     </div>
     <div class="tall" id="tall" role="group" aria-label="Snarveier til saker">${kort.map(([k, e, n, u, kl, paa, t]) =>
       `<button data-t="${k}" class="${kl}" aria-pressed="${!!paa}" title="${esc(t)}" aria-label="${n} ${esc(e.toLowerCase())}"><span class="e"><span class="lang">${esc(e)}</span><span class="kort">${esc(KORT_ETIKETT[k] || e)}</span></span><span class="n">${n}</span><span class="u">${esc(u)}</span></button>`).join("")}</div>`;
-  const ny = apne.filter((x) => x.venterPaaOss || !x.eier).length;
+  const ny = new Set([...apne.filter((x) => x.venterPaaOss || !x.eier).map((x) => x.id), ...nye]).size;
   document.title = (ny ? `(${ny}) ` : "") + "KVH Support";
   meldOpp(ny);
 }
@@ -216,7 +245,8 @@ function tegnFaner() {
   const vr = $("#vis-vent-rad"); if (vr) { vr.hidden = S.fane !== "åpen" || !!S.treff; $("#vis-vent").checked = S.visVent; }
   $("#visning").innerHTML =
     `<button data-v="alle" aria-pressed="${S.visning === "alle"}">Alle saker<span class="t">${kilde.length}</span></button>` +
-    `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${kilde.filter((x) => x.eierId === S.me?.id).length}</span></button>`;
+    `<button data-v="mine" aria-pressed="${S.visning === "mine"}">Mine saker<span class="t">${kilde.filter((x) => x.eierId === S.me?.id).length}</span></button>` +
+    `<button data-v="nevnt" aria-pressed="${S.visning === "nevnt"}" title="Saker der en kollega har nevnt deg (@) i et internt notat">Nevnt<span class="t">${kilde.filter((x) => S.nevnt.has(x.id)).length}</span>${nyeNevnt().length ? '<span class="nevnt-prikk" role="img" aria-label="Nye omtaler"></span>' : ""}</button>`;
 }
 
 /* Statusmerke i margen: grønn åpen hengelås = åpen, gul klokke = på vent, grå lukket hengelås = lukket. Formen skiller
@@ -753,6 +783,7 @@ function helhet() { tegnBruker(); tegnHero(); tegnFaner(); tegnOmfang(); tegnLis
  */
 async function velgSak(id, automatisk = false) {
   S.valgt = id; S.feil = null;
+  if (!automatisk) merkSett(id);
   if (!automatisk) $("#app").classList.add("sak-åpen");
   tegnListe(); tegnSak();
   try {
@@ -797,6 +828,13 @@ function koble() {
   /* `error` bobler ikke, så den fanges i fangstfasen. Et bilde som ikke finnes, fjernes og initialene vises. */
   document.addEventListener("error", (e) => { if (e.target && e.target.classList && e.target.classList.contains("prof")) e.target.remove(); }, true);
   $("#faner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) byttFane(b.dataset.f); });
+  $("#hero").addEventListener("click", (e) => {
+    if (!e.target.closest("#til-nevnt")) return;
+    S.visning = "nevnt"; S.spesial = null; S.fane = "åpen"; S.filter = ""; S.treff = null;
+    const sokF = $("#sok"); if (sokF) sokF.value = "";
+    const l = synlige(); if (!l.some((x) => x.id === S.valgt)) S.valgt = forsteSakId(l);
+    helhet();
+  });
   $("#visning").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     S.visning = b.dataset.v; S.spesial = null;
@@ -946,6 +984,8 @@ async function oppfrisk() {
   try {
     const eierFoer = S.valgt ? finn(S.valgt)?.eierId : undefined;
     await lastSaker();
+    /* Står en nevnt sak åpen og er sett, følger «sett» med, så mitt eget svar ikke gjør omtalen ny igjen. */
+    if (S.valgt && lesSett()[S.valgt]) merkSett(S.valgt);
     if (S.fane === "lukket") await lastLukkede();
     const sak = S.valgt ? finn(S.valgt) : null;
     /* Eieren kan være endret av en kollega: tegn toppen på nytt, men bare da (åpen meny skal ikke lukkes av seg selv). */

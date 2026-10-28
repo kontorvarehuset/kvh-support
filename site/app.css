@@ -692,3 +692,10 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 .omtaleliste{position:fixed;z-index:60;min-width:200px;max-width:min(320px,calc(100vw - 16px));background:var(--card);color:var(--ink);border:1px solid var(--kant);border-radius:12px;box-shadow:var(--lift);padding:4px;display:flex;flex-direction:column}
 .omtaleliste button{all:unset;box-sizing:border-box;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .omtaleliste button[aria-selected="true"],.omtaleliste button:hover{background:var(--primary-tint);color:var(--primary-deep)}
+
+/* «Nevnt»: en liten puls ved fanen mens det finnes omtaler jeg ikke har sett, og en lenke i hilsenen. */
+.visning button .nevnt-prikk{width:8px;height:8px;border-radius:50%;background:var(--primary);align-self:center;animation:nevntpuls 1.6s ease-in-out infinite}
+@keyframes nevntpuls{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--primary) 55%,transparent);opacity:1}50%{box-shadow:0 0 0 6px transparent;opacity:.55}}
+.under-nevnt{all:unset;cursor:pointer;color:var(--primary-deep);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.under-nevnt:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){.visning button .nevnt-prikk{animation:none}}
