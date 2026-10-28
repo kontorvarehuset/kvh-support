@@ -26,15 +26,29 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const gyldig = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const TRYGG_BILDE = /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/i;
 
-/** Redigeringsfeltet til HTML for Zammad. Bare tekst, linjeskift og innlimte bilder. */
-export function tilHtml(felt) {
+/** Adressen Zammad selv bruker i omtaler (målt 28. okt 2026 på en omtale skrevet med @@ i Zammads eget felt). */
+const PROFIL = "https://support.kvh.no/#user/profile/";
+
+/**
+ * Redigeringsfeltet til HTML for Zammad. Bare tekst, linjeskift og innlimte bilder.
+ *
+ * `omtaler`: en omtale (@kollega) blir den samme lenken Zammads eget felt lager, og det er den som gjør
+ * kollegaen til abonnent og gir klokkevarsel. Bare i interne notater: i et svar til kunden blir navnet stående som
+ * vanlig tekst, så en omtale aldri havner som lenke i kundens e-post.
+ */
+export function tilHtml(felt, { omtaler = false } = {}) {
   let bilder = 0, tekst = false;
   const gaa = (node) => {
     let ut = "";
     for (const n of node.childNodes) {
       if (n.nodeType === 3) { if (n.textContent.trim()) tekst = true; ut += esc(n.textContent); }
       else if (n.nodeName === "BR") ut += "<br>";
-      else if (n.nodeName === "IMG") {
+      else if (n.nodeName === "A" && n.dataset.mentionUserId !== undefined) {
+        /* Id-en valideres som tall: den havner i en attributt, og feltet er redigerbart. */
+        const id = /^\d{1,9}$/.test(n.dataset.mentionUserId) ? n.dataset.mentionUserId : "";
+        if (omtaler && id) { tekst = true; ut += `<a href="${PROFIL}${id}" data-mention-user-id="${id}" rel="nofollow noreferrer noopener" title="${PROFIL}${id}">${esc(n.textContent)}</a>`; }
+        else { if (n.textContent.trim()) tekst = true; ut += esc(n.textContent); }
+      } else if (n.nodeName === "IMG") {
         const src = n.getAttribute("src") || "";
         if (TRYGG_BILDE.test(src)) { bilder++; ut += `<img src="${src}">`; }
       } else if (n.nodeName === "DIV" || n.nodeName === "P") {
@@ -175,6 +189,53 @@ export function monter(rot, ctx) {
   const lagre = () => { u.html = felt.innerHTML; };
   felt.addEventListener("input", lagre);
 
+  /*
+   * Omtale av en kollega i et internt notat: skriv @ og noen bokstaver, velg fra lista. Zammads eget felt bruker @@;
+   * her holder én @, siden feltet vårt ikke bruker @ til noe annet. Valget settes inn som en lenke (data-mention-user-id)
+   * som `tilHtml` gjør om til det Zammad forventer, og da får kollegaen varsel. Lista finnes bare i notatmodus.
+   */
+  const kollegaer = () => (ctx.agenter ? ctx.agenter() : []);
+  let omtaleListe = null, omtaleValg = [], omtaleNr = 0, omtaleStart = null;
+  const lukkOmtale = () => { if (omtaleListe) { omtaleListe.remove(); omtaleListe = null; } omtaleValg = []; omtaleStart = null; };
+  const sokOmtale = () => {
+    if (u.modus !== "notat") return lukkOmtale();
+    const sel = getSelection();
+    if (!sel.rangeCount || !sel.isCollapsed || !felt.contains(sel.anchorNode) || sel.anchorNode.nodeType !== 3) return lukkOmtale();
+    const tekst = sel.anchorNode.textContent.slice(0, sel.anchorOffset);
+    const m = /(?:^|[\s\u00a0])@([^\s@\u00a0]{0,20})$/.exec(tekst);
+    if (!m) return lukkOmtale();
+    const q = m[1].toLocaleLowerCase("nb");
+    omtaleValg = kollegaer().filter((a) => !q || a.navn.toLocaleLowerCase("nb").split(/\s+/).some((d) => d.startsWith(q)) || a.navn.toLocaleLowerCase("nb").startsWith(q)).slice(0, 6);
+    if (!omtaleValg.length) return lukkOmtale();
+    omtaleStart = { node: sel.anchorNode, fra: sel.anchorOffset - m[1].length - 1, til: sel.anchorOffset };
+    omtaleNr = Math.min(omtaleNr, omtaleValg.length - 1);
+    if (!omtaleListe) { omtaleListe = document.createElement("div"); omtaleListe.className = "omtaleliste"; omtaleListe.setAttribute("role", "listbox"); document.body.appendChild(omtaleListe); }
+    omtaleListe.innerHTML = omtaleValg.map((a, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === omtaleNr}">${esc(a.navn)}</button>`).join("");
+    const r = sel.getRangeAt(0).getBoundingClientRect(), fr = felt.getBoundingClientRect();
+    const x = Math.min(Math.max(8, r.left || fr.left), window.innerWidth - 230), h = omtaleListe.offsetHeight;
+    omtaleListe.style.left = x + "px";
+    omtaleListe.style.top = ((r.bottom || fr.top) + h + 12 > window.innerHeight ? (r.top || fr.top) - h - 6 : (r.bottom || fr.top) + 6) + "px";
+  };
+  const velgOmtale = (i) => {
+    const a = omtaleValg[i], s = omtaleStart; if (!a || !s) return;
+    const rng = document.createRange(); rng.setStart(s.node, s.fra); rng.setEnd(s.node, s.til); rng.deleteContents();
+    const l = document.createElement("a");
+    l.className = "omtale"; l.contentEditable = "false"; l.dataset.mentionUserId = String(a.id); l.textContent = a.navn;
+    const rom = document.createTextNode("\u00a0");
+    rng.insertNode(rom); rng.insertNode(l);
+    const sel = getSelection(); const ny = document.createRange(); ny.setStartAfter(rom); ny.collapse(true); sel.removeAllRanges(); sel.addRange(ny);
+    lukkOmtale(); lagre(); felt.focus();
+  };
+  felt.addEventListener("input", sokOmtale);
+  felt.addEventListener("keydown", (e) => {
+    if (!omtaleListe) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); omtaleNr = (omtaleNr + (e.key === "ArrowDown" ? 1 : omtaleValg.length - 1)) % omtaleValg.length; sokOmtale(); }
+    else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); e.stopPropagation(); velgOmtale(omtaleNr); }
+    else if (e.key === "Escape") { e.preventDefault(); lukkOmtale(); }
+  });
+  felt.addEventListener("blur", () => setTimeout(lukkOmtale, 120));
+  document.addEventListener("mousedown", (e) => { const b = e.target.closest?.(".omtaleliste button"); if (b) { e.preventDefault(); velgOmtale(Number(b.dataset.i)); } });
+
   /* Zammad-makroen «Hei Fornavn Etternavn,» som alle svar begynner med. Den settes inn når man begynner å skrive
      et svar i et tomt felt (ikke ved åpning av saken: på telefon betyr et ikke-tomt felt at skriveflata står utvidet,
      og et notat skal ikke ha hilsen). En hilsen uten noe etter seg regnes som tomt, så den hverken hindrer at feltet
@@ -263,7 +324,7 @@ export function monter(rot, ctx) {
   const send = (lukkEtterpaa = false) => {
     if (kunSperret) return ctx.toast(`Sperret i prøvemodus: kan bare sende på #${SPERRE_TIL}.`);
     if (u.modus === "svar" && !leggTilCc()) return;
-    const { html, tomt } = tilHtml(utenSig());
+    const { html, tomt } = tilHtml(utenSig(), { omtaler: u.modus === "notat" });
     if (tomt || (u.modus === "svar" && bareHilsen())) return ctx.toast("Skriv noe først.");
     const notat = u.modus === "notat";
     if (!notat && !gyldig(sak.epost || "")) return ctx.toast("Saken mangler en gyldig e-postadresse til kunden.");

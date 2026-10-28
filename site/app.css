@@ -686,3 +686,9 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--prim
 /* «På vent»-menyen: etikett og merke på hver sin side uten linjeskift (merket «tas opp om 7 dager» brøt over to linjer og kolliderte med etiketten). */
 .meny-pop button span:first-child{white-space:nowrap}
 .meny-pop button span:last-child{white-space:nowrap;text-align:right}
+
+/* Omtale av en kollega i et internt notat: lenken i feltet, og lista som kommer når man skriver @. */
+.felt a.omtale{color:var(--primary-deep);background:var(--primary-tint);border-radius:6px;padding:0 5px;text-decoration:none;font-weight:600;white-space:nowrap;cursor:default}
+.omtaleliste{position:fixed;z-index:60;min-width:200px;max-width:min(320px,calc(100vw - 16px));background:var(--card);color:var(--ink);border:1px solid var(--kant);border-radius:12px;box-shadow:var(--lift);padding:4px;display:flex;flex-direction:column}
+.omtaleliste button{all:unset;box-sizing:border-box;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.omtaleliste button[aria-selected="true"],.omtaleliste button:hover{background:var(--primary-tint);color:var(--primary-deep)}
